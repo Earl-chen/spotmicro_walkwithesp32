@@ -1,0 +1,80 @@
+# Makefile for Kinematics Test Program
+
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -g
+INCLUDES = -I. -Imain
+TARGET = kinematics_test
+MAIN_SOURCE = main/kinematics_test_main.cpp
+
+# 需要编译的源文件
+SOURCES = \
+    main/tests/KinematicsTestFramework.cpp \
+    main/kinematics/LegKinematics.cpp \
+    main/kinematics/KinematicsGeometry.cpp \
+    main/kinematics/CoordinateTransform.cpp
+
+# 生成目标文件
+OBJECTS = $(SOURCES:.cpp=.o)
+MAIN_OBJECT = $(MAIN_SOURCE:.cpp=.o)
+
+# 默认目标
+all: $(TARGET)
+
+# 链接目标程序
+$(TARGET): $(OBJECTS) $(MAIN_OBJECT)
+	@echo "链接程序: $@"
+	$(CXX) $(CXXFLAGS) -o $@ $^
+	@echo "✅ 编译成功！"
+
+# 编译规则
+%.o: %.cpp
+	@echo "编译: $<"
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# 清理
+clean:
+	@echo "清理编译文件..."
+	rm -f $(OBJECTS) $(MAIN_OBJECT) $(TARGET)
+	@echo "✅ 清理完成！"
+
+# 运行测试
+test: $(TARGET)
+	@echo "运行快速验证测试..."
+	./$(TARGET) --quick
+
+# 运行完整往返测试
+test-roundtrip: $(TARGET)
+	@echo "运行FK-IK往返测试..."
+	./$(TARGET) --roundtrip
+
+# 运行批量测试
+test-batch: $(TARGET)
+	@echo "运行批量测试..."
+	./$(TARGET) --batch
+
+# 安装到系统路径（可选）
+install: $(TARGET)
+	cp $(TARGET) /usr/local/bin/
+
+# 创建发布版本
+release: CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -DNDEBUG
+release: clean $(TARGET)
+
+# 调试版本
+debug: CXXFLAGS = -std=c++17 -Wall -Wextra -O0 -g -DDEBUG
+debug: clean $(TARGET)
+
+# 帮助信息
+help:
+	@echo "可用的make目标:"
+	@echo "  all          - 编译程序（默认）"
+	@echo "  clean        - 清理编译文件"
+	@echo "  test         - 运行快速验证测试"
+	@echo "  test-roundtrip - 运行FK-IK往返测试"
+	@echo "  test-batch   - 运行批量测试"
+	@echo "  debug        - 编译调试版本"
+	@echo "  release      - 编译发布版本"
+	@echo "  install      - 安装到系统路径"
+	@echo "  help         - 显示此帮助信息"
+
+.PHONY: all clean test test-roundtrip test-batch install release debug help
