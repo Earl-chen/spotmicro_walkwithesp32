@@ -1,0 +1,9 @@
+# C++14 support
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
+CONFIG_COMPILER_CXX_RTTI=y
+
+# Increase main task stack size
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Enable partition for large app
+CONFIG_PARTITION_APP_OFFSET=0x10000

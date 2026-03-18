@@ -1,0 +1,105 @@
+# 测试模式宏定义
+# enum {
+#     PWM_CONTROLLER_TEST_MODE = 0,      # PCA9685硬件驱动测试
+#     SERVOANGLE_CONTROLLER_TEST_MODE = 1, # ServoDriver角度控制测试
+#     JOINT_CONTROLLER_TEST_MODE = 2,      # 关节控制器测试
+#     KINEMATICS_CONTROLLER_TEST_MODE = 3, # 运动学控制器测试
+#     SMOOTH_MOTION_TEST_MODE = 4,         # 平滑运动控制测试
+# };
+
+# 设置当前测试模式（修改这里来切换测试模式）
+set(TEST_MODE 4)  # 0=PWM测试, 1=舵机角度测试, 2=关节控制测试, 3=运动学测试, 4=平滑运动测试
+
+# 公共源文件（所有测试模式都需要）
+set(COMMON_SRCS
+    "simple_test_main.cpp"
+    "utils/Logger.cpp"
+)
+
+# 根据测试模式添加对应的源文件
+if(TEST_MODE EQUAL 0)
+    # 测试模式 0: PCA9685硬件测试
+    message(STATUS "编译模式: PWM_CONTROLLER_TEST_MODE (PCA9685硬件测试)")
+    set(MODE_SRCS
+        "drivers/test_pca9685_driver.cpp"
+        "drivers/PCA9685Driver.cpp"
+    )
+elseif(TEST_MODE EQUAL 1)
+    # 测试模式 1: ServoDriver角度控制测试
+    message(STATUS "编译模式: SERVOANGLE_CONTROLLER_TEST_MODE (舵机角度控制测试)")
+    set(MODE_SRCS
+        "drivers/test_servo_angle_control.cpp"
+        "drivers/PCA9685Driver.cpp"
+        "drivers/ServoDriver.cpp"
+        "config/ConfigManager.cpp"
+    )
+elseif(TEST_MODE EQUAL 2)
+    # 测试模式 2: 关节控制器测试
+    message(STATUS "编译模式: JOINT_CONTROLLER_TEST_MODE (关节控制器测试)")
+    set(MODE_SRCS
+        "controllers/test_joint_controller.cpp"
+        "controllers/JointController.cpp"
+        "controllers/RobotController.cpp"
+        "drivers/PCA9685Driver.cpp"
+        "drivers/ServoDriver.cpp"
+        "config/ConfigManager.cpp"
+    )
+elseif(TEST_MODE EQUAL 3)
+    # 测试模式 3: 运动学控制器测试
+    message(STATUS "编译模式: KINEMATICS_CONTROLLER_TEST_MODE (运动学控制器测试)")
+    set(MODE_SRCS
+        "controllers/test_kinematics_controller.cpp"
+        "controllers/JointController.cpp"
+        "controllers/RobotController.cpp"
+        "drivers/PCA9685Driver.cpp"
+        "drivers/ServoDriver.cpp"
+        "kinematics/LegKinematics.cpp"
+        "kinematics/KinematicsGeometry.cpp"
+        "kinematics/CoordinateTransform.cpp"
+        "kinematics/Leg.cpp"                    # 新增：Leg类实现
+        "kinematics/QuadrupedModel.cpp"         # 新增：QuadrupedModel类实现
+        "utils/UartTerminal.cpp"
+        "config/ConfigManager.cpp"
+    )
+elseif(TEST_MODE EQUAL 4)
+    # 测试模式 4: 平滑运动控制测试
+    message(STATUS "编译模式: SMOOTH_MOTION_TEST_MODE (平滑运动控制测试)")
+    set(MODE_SRCS
+        "controllers/test_smooth_motion_controller.cpp"
+        "controllers/PoseInterpolator.cpp"
+        "controllers/JointSmoother.cpp"
+        "controllers/SmoothMotionController.cpp"
+        "controllers/JointController.cpp"
+        "controllers/RobotController.cpp"
+        "drivers/PCA9685Driver.cpp"
+        "drivers/ServoDriver.cpp"
+        "kinematics/LegKinematics.cpp"
+        "kinematics/KinematicsGeometry.cpp"
+        "kinematics/CoordinateTransform.cpp"
+        "kinematics/Leg.cpp"                    # 新增：Leg类实现
+        "kinematics/QuadrupedModel.cpp"         # 新增：QuadrupedModel类实现
+        "utils/UartTerminal.cpp"
+        "config/ConfigManager.cpp"
+    )
+else()
+    message(FATAL_ERROR "未知的测试模式: ${TEST_MODE}")
+endif()
+
+idf_component_register(
+    SRCS
+        ${COMMON_SRCS}
+        ${MODE_SRCS}
+
+    INCLUDE_DIRS
+        "."
+        "utils"
+        "drivers"
+        "config"
+        "controllers"
+        "kinematics"
+
+    REQUIRES pca9685
+)
+
+# 使用ESP-IDF的方式添加编译定义
+target_compile_definitions(__idf_main PRIVATE TEST_MODE=${TEST_MODE})
