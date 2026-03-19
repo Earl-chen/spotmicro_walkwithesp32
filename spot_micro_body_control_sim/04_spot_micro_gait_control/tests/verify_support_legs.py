@@ -35,7 +35,7 @@ def verify_support_legs():
         
         for leg_name in leg_names:
             leg_phase = gait.get_leg_phase(leg_name)
-            is_swing = leg_phase < 0.5
+            is_swing = leg_phase < 0.25  # ✅ 修正：0.5 → 0.25（25%摆动相）
             
             if is_swing:
                 swing_legs.append(leg_names_cn[leg_name])

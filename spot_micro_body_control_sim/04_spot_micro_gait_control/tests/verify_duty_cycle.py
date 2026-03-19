@@ -14,13 +14,36 @@ sys.path.insert(0, module_root)
 
 from gait.walk_gait import WalkGait
 
-# 配置中文字体
-font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
-if os.path.exists(font_path):
-    fm.fontManager.addfont(font_path)
-    font_prop = fm.FontProperties(fname=font_path)
-    plt.rcParams['font.family'] = font_prop.get_name()
-    plt.rcParams['axes.unicode_minus'] = False
+# 配置中文字体（兼容低版本matplotlib）
+font_candidates = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'fonts', 'BabelStoneHan.ttf'),
+    os.path.expanduser('~/BabelStoneHan.ttf'),
+    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+]
+
+chinese_font = None
+for font_path in font_candidates:
+    if os.path.exists(font_path):
+        try:
+            # 尝试使用addfont方法（matplotlib 3.2+）
+            if hasattr(fm.fontManager, 'addfont'):
+                fm.fontManager.addfont(font_path)
+            chinese_font = fm.FontProperties(fname=font_path)
+            
+            # 设置全局字体（兼容不同版本）
+            font_name = chinese_font.get_name()
+            plt.rcParams['font.family'] = font_name
+            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
+            plt.rcParams['axes.unicode_minus'] = False
+            break
+        except:
+            continue
+
+if chinese_font is None:
+    chinese_font = fm.FontProperties()
 
 def verify_duty_cycle():
     """验证占空比和支撑腿数量"""
