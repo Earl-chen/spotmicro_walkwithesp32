@@ -7,8 +7,8 @@ Walk 步态可视化程序
 生成步态动画和轨迹图，直观展示 Walk 步态的工作原理。
 
 运行方式：
-    cd /home/robot-01/work/spotmicro/spot_micro_body_control_sim/03_spot_micro_simulator_framework
-    python3 app/gait/visualize_walk_gait.py
+    cd visualization/
+    python3 visualize_walk_gait.py
 """
 
 import sys
@@ -19,11 +19,11 @@ from matplotlib.animation import FuncAnimation
 from matplotlib import font_manager
 from mpl_toolkits.mplot3d import Axes3D
 
-# 添加项目根目录到 Python 路径
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, project_root)
+# 添加模块根目录到 Python 路径
+module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, module_root)
 
-from app.gait.walk_gait import WalkGait
+from gait.walk_gait import WalkGait
 
 
 def setup_chinese_font():
