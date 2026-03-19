@@ -17,7 +17,7 @@ from gait.trajectory import TrajectoryGenerator
 
 # 配置中文字体（兼容低版本matplotlib）
 font_candidates = [
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'fonts', 'BabelStoneHan.ttf'),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'fonts', 'BabelStoneHan.ttf'),
     os.path.expanduser('~/BabelStoneHan.ttf'),
     '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
     '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
