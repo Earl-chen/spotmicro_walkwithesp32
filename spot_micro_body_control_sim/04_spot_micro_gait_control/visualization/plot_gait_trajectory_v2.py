@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 import numpy as np
 
-# 使用脚本所在目录作为项目根目录
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+# 获取模块根目录（上一级）
+module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, module_root)
 
 from gait.walk_gait import WalkGait
 from gait.trajectory import TrajectoryGenerator
@@ -195,7 +195,7 @@ ax4.axis('equal')
 plt.tight_layout()
 
 # 保存图片
-output_path = os.path.join(project_root, 'gait_trajectory_v2.png')
+output_path = os.path.join(module_root, 'gait_trajectory_v2.png')
 plt.savefig(output_path, dpi=150, bbox_inches='tight')
 
 file_size = os.path.getsize(output_path) / 1024
