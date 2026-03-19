@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 import numpy as np
 
-project_root = '/home/robot-01/work/spotmicro/spot_micro_body_control_sim/03_spot_micro_simulator_framework'
+# 使用脚本所在目录作为项目根目录
+project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
 from app.gait.walk_gait import WalkGait
@@ -19,29 +20,41 @@ print("="*70)
 print("开始绘制步态轨迹图（修正版）")
 print("="*70)
 
-# ✅ 关键：使用项目内的 BabelStoneHan.ttf 字体
-font_path = '/home/robot-01/work/spotmicro/HighTorque_Pi_Isaaclab/BabelStoneHan.ttf'
+# 配置中文字体（兼容低版本matplotlib）
+font_candidates = [
+    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+]
 
-if os.path.exists(font_path):
-    # ✅ 关键：使用 addfont() 显式添加字体到缓存
-    fm.fontManager.addfont(font_path)
-    font_prop = fm.FontProperties(fname=font_path)
-    plt.rcParams['font.family'] = font_prop.get_name()
+chinese_font = None
+for font_path in font_candidates:
+    if os.path.exists(font_path):
+        try:
+            # 尝试使用addfont方法（matplotlib 3.2+）
+            if hasattr(fm.fontManager, 'addfont'):
+                fm.fontManager.addfont(font_path)
+            chinese_font = fm.FontProperties(fname=font_path)
+            
+            # 设置全局字体（兼容不同版本）
+            font_name = chinese_font.get_name()
+            plt.rcParams['font.family'] = font_name
+            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
+            plt.rcParams['axes.unicode_minus'] = False
+            
+            print(f"✅ 已加载中文字体: {font_path}")
+            break
+        except Exception as e:
+            print(f"⚠️  加载字体失败 {font_path}: {e}")
+            continue
+
+if chinese_font is None:
+    print("❌ 未找到可用的中文字体，使用默认字体")
+    chinese_font = fm.FontProperties()
+    # 设置后备字体
+    plt.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'DejaVu Sans']
     plt.rcParams['axes.unicode_minus'] = False
-    print(f"✅ 已加载中文字体: {font_path}")
-else:
-    print(f"❌ 字体文件不存在: {font_path}")
-    # 尝试系统字体
-    font_path_sys = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
-    if os.path.exists(font_path_sys):
-        fm.fontManager.addfont(font_path_sys)
-        font_prop = fm.FontProperties(fname=font_path_sys)
-        plt.rcParams['font.family'] = font_prop.get_name()
-        plt.rcParams['axes.unicode_minus'] = False
-        print(f"✅ 已加载系统字体: {font_path_sys}")
-    else:
-        print(f"❌ 系统字体也不存在")
-        sys.exit(1)
 
 # 创建步态控制器
 gait = WalkGait(stride_length=0.04, step_height=0.025, frequency=0.8)
