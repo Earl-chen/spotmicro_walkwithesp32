@@ -10,10 +10,10 @@ from matplotlib import font_manager as fm
 import numpy as np
 
 # 添加项目根目录到 Python 路径
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, module_root)
 
-from app.gait.trajectory import TrajectoryGenerator
+from gait.trajectory import TrajectoryGenerator
 
 # 配置中文字体
 font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'

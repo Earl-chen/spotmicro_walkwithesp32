@@ -27,7 +27,7 @@ from robots.spot_micro.leg_kinematics import SpotLegKinematics
 from robots.spot_micro import geometry
 from app.robot_model import RobotModel
 from app.controller import Controller
-from app.gait.walk_gait import WalkGait
+from gait.walk_gait import WalkGait
 from core.types import LegJoints
 
 # 配置中文字体（兼容低版本matplotlib）

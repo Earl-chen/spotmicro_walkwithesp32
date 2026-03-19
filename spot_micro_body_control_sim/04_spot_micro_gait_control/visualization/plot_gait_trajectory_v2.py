@@ -13,8 +13,8 @@ import numpy as np
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
-from app.gait.walk_gait import WalkGait
-from app.gait.trajectory import TrajectoryGenerator
+from gait.walk_gait import WalkGait
+from gait.trajectory import TrajectoryGenerator
 
 print("="*70)
 print("开始绘制步态轨迹图（修正版）")

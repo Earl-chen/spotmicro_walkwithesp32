@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 import numpy as np
 
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, module_root)
 
-from app.gait.walk_gait import WalkGait
+from gait.walk_gait import WalkGait
 
 # 配置中文字体
 font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'

@@ -4,11 +4,12 @@
 import sys
 import os
 
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+# 获取模块根目录（上一级）
+module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, module_root)
 
-from app.gait.walk_gait import WalkGait
-from app.gait.trajectory import TrajectoryGenerator
+from gait.walk_gait import WalkGait
+from gait.trajectory import TrajectoryGenerator
 
 def test_trajectory():
     """测试轨迹生成器"""
