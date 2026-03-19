@@ -1,0 +1,126 @@
+# app/gait/trajectory.py
+"""
+足端轨迹生成器
+
+提供多种轨迹生成方法，用于步态控制。
+"""
+
+import numpy as np
+
+
+class TrajectoryGenerator:
+    """
+    足端轨迹生成器
+    
+    支持多种轨迹类型：
+    - 摆线轨迹（Cycloid）：推荐用于 Walk 步态
+    - 椭圆轨迹（Ellipse）：简化版
+    """
+    
+    @staticmethod
+    def cycloid_trajectory(phase: float, stride_length: float, step_height: float) -> tuple:
+        """
+        摆线轨迹（推荐用于 Walk 步态）
+        
+        特点：
+        - 平滑的加速和减速
+        - 适合舵机控制
+        - 在摆动相和支撑相之间平滑过渡
+        
+        参数：
+            phase: 相位 (0-1)
+                   0-0.5: 摆动相（抬腿）
+                   0.5-1.0: 支撑相（着地）
+            stride_length: 步长 (米)，默认 0.05 (50mm)
+            step_height: 抬腿高度 (米)，默认 0.03 (30mm)
+        
+        返回：
+            (x, z): 前后位置偏移, 上下位置偏移（米）
+        
+        示例：
+            >>> # 生成摆动相中点的轨迹
+            >>> x, z = TrajectoryGenerator.cycloid_trajectory(0.25, 0.05, 0.03)
+            >>> # z > 0，表示腿抬起
+        """
+        if phase < 0.5:  # 摆动相（抬腿）
+            t = phase * 2 * np.pi
+            x = stride_length * (1 - t / (2 * np.pi) + np.sin(t) / (2 * np.pi))
+            z = step_height * (1 - np.cos(t)) / 2
+        else:  # 支撑相（着地）
+            x = stride_length * (1 - phase)
+            z = 0
+        
+        return x, z
+    
+    @staticmethod
+    def ellipse_trajectory(phase: float, stride_length: float, step_height: float) -> tuple:
+        """
+        椭圆轨迹（简化版）
+        
+        特点：
+        - 计算简单
+        - 形状规则
+        - 摆动相和支撑相对称
+        
+        参数：
+            phase: 相位 (0-1)
+            stride_length: 步长 (米)
+            step_height: 抬腿高度 (米)
+        
+        返回：
+            (x, z): 前后位置偏移, 上下位置偏移（米）
+        
+        注意：
+            此轨迹在相位 0.5 时会有一个突变（从最高点直接到地面）
+            建议使用摆线轨迹以获得更平滑的运动
+        """
+        angle = phase * 2 * np.pi
+        x = stride_length / 2 * np.cos(angle)
+        z = step_height * (1 + np.sin(angle)) / 2  # 只取上半椭圆
+        
+        return x, z
+    
+    @staticmethod
+    def bezier_trajectory(phase: float, stride_length: float, step_height: float) -> tuple:
+        """
+        贝塞尔曲线轨迹（高级）
+        
+        特点：
+        - 可自定义曲线形状
+        - 平滑且可控
+        - 适合复杂轨迹需求
+        
+        参数：
+            phase: 相位 (0-1)
+            stride_length: 步长 (米)
+            step_height: 抬腿高度 (米)
+        
+        返回：
+            (x, z): 前后位置偏移, 上下位置偏移（米）
+        """
+        # 简化的二次贝塞尔曲线
+        # 控制点：(0, 0), (stride_length/2, step_height), (stride_length, 0)
+        t = phase
+        x = 2 * (1 - t) * t * (stride_length / 2) + t * t * stride_length
+        z = 2 * (1 - t) * t * step_height
+        
+        return x, z
+
+
+# 单元测试
+if __name__ == '__main__':
+    print("测试轨迹生成器...")
+    
+    # 测试摆线轨迹
+    print("\n摆线轨迹测试:")
+    for phase in [0.0, 0.25, 0.5, 0.75, 1.0]:
+        x, z = TrajectoryGenerator.cycloid_trajectory(phase, 0.05, 0.03)
+        print(f"  相位 {phase:.2f}: x={x*1000:.1f}mm, z={z*1000:.1f}mm")
+    
+    # 测试椭圆轨迹
+    print("\n椭圆轨迹测试:")
+    for phase in [0.0, 0.25, 0.5, 0.75, 1.0]:
+        x, z = TrajectoryGenerator.ellipse_trajectory(phase, 0.05, 0.03)
+        print(f"  相位 {phase:.2f}: x={x*1000:.1f}mm, z={z*1000:.1f}mm")
+    
+    print("\n✅ 轨迹生成器测试完成")
