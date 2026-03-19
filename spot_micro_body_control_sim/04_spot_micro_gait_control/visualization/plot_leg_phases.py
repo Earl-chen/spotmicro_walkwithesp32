@@ -72,20 +72,20 @@ def plot_leg_phases():
     for i, leg_name in enumerate(leg_names):
         phase_offset = gait.phase_offsets[leg_name]
         
-        # 计算摆动相和支撑相的区间
+        # 计算摆动相和支撑相的区间（修正版：25%/75%占空比）
         swing_start = phase_offset
-        swing_end = phase_offset + 0.5
+        swing_end = phase_offset + 0.25  # ✅ 修正：0.5 → 0.25（25%摆动相）
         stance_start = swing_end % 1.0  # 支撑相起点（处理循环）
-        stance_end = (swing_end + 0.5) % 1.0  # 支撑相终点
+        stance_end = (swing_end + 0.75) % 1.0  # ✅ 修正：0.5 → 0.75（75%支撑相）
         
-        # 处理相位跨越1.0的情况
+        # 处理相位跨越1.0的情况（修正版：25%摆动相，75%支撑相）
         if swing_end <= 1.0:
-            # 摆动相不跨越边界
-            ax1.barh(i, 0.5, left=swing_start, height=0.7, 
+            # 摆动相不跨越边界（0.25）
+            ax1.barh(i, 0.25, left=swing_start, height=0.7, 
                     color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
-            # 支撑相可能跨越边界
+            # 支撑相可能跨越边界（0.75）
             if stance_end > stance_start:
-                ax1.barh(i, 0.5, left=stance_start, height=0.7,
+                ax1.barh(i, 0.75, left=stance_start, height=0.7,
                         color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
             else:
                 # 支撑相跨越1.0
@@ -94,13 +94,13 @@ def plot_leg_phases():
                 ax1.barh(i, stance_end, left=0, height=0.7,
                         color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
         else:
-            # 摆动相跨越1.0
+            # 摆动相跨越1.0（0.25）
             ax1.barh(i, 1.0 - swing_start, left=swing_start, height=0.7,
                     color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
             ax1.barh(i, swing_end - 1.0, left=0, height=0.7,
                     color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
-            # 支撑相不跨越边界
-            ax1.barh(i, 0.5, left=stance_start, height=0.7,
+            # 支撑相不跨越边界（0.75）
+            ax1.barh(i, 0.75, left=stance_start, height=0.7,
                     color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
     
     ax1.set_yticks(range(len(leg_names)))
@@ -131,7 +131,7 @@ def plot_leg_phases():
         for global_phase in global_phases:
             gait.global_phase = global_phase
             leg_phase = gait.get_leg_phase(leg_name)
-            is_swing = 1 if leg_phase < 0.5 else 0
+            is_swing = 1 if leg_phase < 0.25 else 0  # ✅ 修正：0.5 → 0.25（25%摆动相）
             
             phases.append(global_phase)
             states.append(is_swing)
@@ -186,7 +186,7 @@ def plot_leg_phases():
         
         for leg_name in leg_names:
             leg_phase = gait.get_leg_phase(leg_name)
-            if leg_phase < 0.5:
+            if leg_phase < 0.25:  # ✅ 修正：0.5 → 0.25（25%摆动相）
                 swing_legs.append(leg_names_cn[leg_name])
             else:
                 stance_legs.append(leg_names_cn[leg_name])
