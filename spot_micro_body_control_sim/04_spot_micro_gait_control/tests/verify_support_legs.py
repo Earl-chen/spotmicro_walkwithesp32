@@ -65,7 +65,7 @@ def verify_support_legs():
         stance_count = 0
         for leg_name in leg_names:
             leg_phase = gait.get_leg_phase(leg_name)
-            if leg_phase >= 0.5:
+            if leg_phase >= 0.25:  # ✅ 修正：0.5 → 0.25（75%支撑相）
                 stance_count += 1
         
         stance_counts[stance_count] += 1
