@@ -21,7 +21,10 @@ print("开始绘制步态轨迹图（修正版）")
 print("="*70)
 
 # 配置中文字体（兼容低版本matplotlib）
+# 优先使用项目目录下的字体，然后检查其他候选字体
 font_candidates = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts', 'BabelStoneHan.ttf'),  # 项目目录（优先）
+    os.path.expanduser('~/BabelStoneHan.ttf'),  # 用户home目录
     '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
     '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
     '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',

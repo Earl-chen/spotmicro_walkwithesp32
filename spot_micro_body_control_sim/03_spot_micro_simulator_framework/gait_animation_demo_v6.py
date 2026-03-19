@@ -31,7 +31,11 @@ from app.gait.walk_gait import WalkGait
 from core.types import LegJoints
 
 # 配置中文字体（兼容低版本matplotlib）
+# 获取项目根目录
+script_dir = os.path.dirname(os.path.abspath(__file__))
 font_candidates = [
+    os.path.join(script_dir, 'fonts', 'BabelStoneHan.ttf'),  # 项目目录下的字体（优先）
+    os.path.expanduser('~/BabelStoneHan.ttf'),                # 用户home目录
     '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
     '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
     '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
@@ -46,6 +50,11 @@ for font_path in font_candidates:
             if hasattr(fm.fontManager, 'addfont'):
                 fm.fontManager.addfont(font_path)
             chinese_font = fm.FontProperties(fname=font_path)
+            
+            # 设置全局字体（兼容不同版本）
+            font_name = chinese_font.get_name()
+            plt.rcParams['font.family'] = font_name
+            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
             plt.rcParams['axes.unicode_minus'] = False
             break
         except:
