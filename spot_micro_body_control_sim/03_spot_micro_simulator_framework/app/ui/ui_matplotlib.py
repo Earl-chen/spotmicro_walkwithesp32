@@ -1,4 +1,5 @@
 # app/ui/ui_matplotlib.py
+import os
 import matplotlib
 import sys
 
@@ -32,28 +33,32 @@ class MatplotlibUI:
         self.controller = controller
         self.model = model
         
-        # 配置中文字体 - 动态查找可用字体
+        # 配置中文字体 - 参考 plot_utils.py 的方法
         self.chinese_font = None
         font_candidates = [
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
             '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
             '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
-            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
             '/System/Library/Fonts/PingFang.ttc',  # macOS
             'C:\\Windows\\Fonts\\msyh.ttc',  # Windows
         ]
+        
+        # 使用 font_manager.fontManager.addfont() 显式添加字体（关键！）
         for font_path in font_candidates:
-            try:
-                self.chinese_font = fm.FontProperties(fname=font_path)
-                break
-            except:
-                continue
+            if os.path.exists(font_path):
+                try:
+                    fm.fontManager.addfont(font_path)
+                    self.chinese_font = fm.FontProperties(fname=font_path)
+                    # 设置全局字体
+                    plt.rcParams['font.family'] = self.chinese_font.get_name()
+                    plt.rcParams['axes.unicode_minus'] = False
+                    break
+                except:
+                    continue
+        
         if self.chinese_font is None:
             self.chinese_font = fm.FontProperties()  # 使用系统默认
-
-        # 同时设置rcParams作为后备
-        plt.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'DejaVu Sans']
-        plt.rcParams['axes.unicode_minus'] = False
-        plt.rcParams['font.family'] = 'sans-serif'
 
         # 颜色配置
         self.leg_colors = {
