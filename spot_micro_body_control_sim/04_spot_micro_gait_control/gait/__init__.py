@@ -7,11 +7,12 @@
 模块：
 - trajectory: 足端轨迹生成器（摆线、椭圆等）
 - walk_gait: Walk 步态实现
-- gait_controller: 步态控制器（集成到系统，在03模块中）
+
+注意：
+- GaitController 已移至 03_spot_micro_simulator_framework/app/gait/
 """
 
 from .trajectory import TrajectoryGenerator
 from .walk_gait import WalkGait
-# GaitController在03_spot_micro_simulator_framework中，因为它依赖仿真框架
 
 __all__ = ['TrajectoryGenerator', 'WalkGait']
