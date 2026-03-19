@@ -11,6 +11,12 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 import math
 
+# 兼容低版本matplotlib：导入3D投影支持
+try:
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+except ImportError:
+    pass  # matplotlib 3.2+ 不需要显式导入
+
 # 使用脚本所在目录作为项目根目录
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
