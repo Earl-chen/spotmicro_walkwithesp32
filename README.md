@@ -27,9 +27,11 @@ Ai_Code/
 │   └── 03_spot_micro_simulator_framework/   # 完整仿真框架
 │
 ├── kinematics_test_standalone/   # 🧪 PC端运动学测试 (5.3MB)
-│   ├── kinematics/                          # 运动学库
-│   ├── tests/                               # 测试文件
-│   └── kinematics_test_main.cpp             # 主程序
+│   │                                       # 与 spot_micro_esp32 共享相同运动学代码
+│   │                                       # 用于在PC上验证算法后再部署到ESP32
+│   ├── kinematics/                          # 运动学库（与ESP32固件同源）
+│   ├── tests/                               # 测试框架
+│   └── kinematics_test_main.cpp             # 命令行测试程序
 │
 ├── doc/                          # 📚 文档中心 (84KB)
 │   ├── 01_系统架构/                         # 系统架构设计
@@ -126,7 +128,15 @@ python3 app/spot_micro_app.py
 cd kinematics_test_standalone
 make -f Makefile.kinematics_test
 ./kinematics_test
+
+# 快速验证
+./kinematics_test --quick
+
+# FK-IK往返测试（验证算法精度）
+./kinematics_test --roundtrip
 ```
+
+> 💡 **用途**：本模块与 `spot_micro_esp32/` 共享相同的运动学算法代码。在修改运动学算法前，先在此验证 FK-IK 往返误差 < 0.001°，确保算法正确后再部署到 ESP32。
 
 ---
 

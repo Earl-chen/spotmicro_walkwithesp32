@@ -114,6 +114,53 @@ Makefile.kinematics_test               # 编译配置文件
 kinematics_test                        # 编译生成的可执行文件
 ```
 
+## 与 spot_micro_esp32 的关系
+
+本模块是 **PC端运动学算法验证工具**，与 `spot_micro_esp32/` 固件模块共享相同的核心运动学代码。
+
+### 📊 对比
+
+| 对比项 | kinematics_test_standalone | spot_micro_esp32 |
+|--------|---------------------------|------------------|
+| **运行环境** | PC（Linux） | ESP32芯片 |
+| **依赖** | 纯C++标准库 | ESP-IDF框架 |
+| **用途** | 算法验证 | 实机控制 |
+| **编译速度** | 快（秒级） | 慢（分钟级） |
+| **交互方式** | 命令行菜单 | Web/串口 |
+
+### 🔗 代码对应关系
+
+```
+kinematics_test_standalone/          spot_micro_esp32/07_body_control_web/
+├── kinematics/                      ├── main/kinematics/
+│   ├── LegKinematics.cpp      ←──→ │   ├── LegKinematics.cpp      (相同算法)
+│   ├── LegKinematics.hpp      ←──→ │   ├── LegKinematics.hpp      (相同算法)
+│   ├── KinematicsGeometry.*   ←──→ │   ├── KinematicsGeometry.*   (相同参数)
+│   └── CoordinateTransform.*  ←──→ │   └── CoordinateTransform.*  (相同工具)
+└── tests/                           └── (集成到主程序)
+    └── KinematicsTestFramework.*
+```
+
+### 🚀 开发流程
+
+```
+1. PC上开发/修改运动学算法
+        ↓
+2. kinematics_test_standalone 验证算法正确性（FK-IK往返测试）
+        ↓
+3. 将验证通过的代码复制到 spot_micro_esp32
+        ↓
+4. 在ESP32上集成到控制系统中
+```
+
+### 💡 使用建议
+
+- **修改运动学算法前**：先在本模块验证，确保FK-IK往返误差 < 0.001°
+- **调试运动学问题时**：优先在本模块排查，PC环境更易于调试
+- **几何参数调整后**：运行批量测试确保所有姿态正常
+
+---
+
 ## 开发者信息
 
 - **基于项目**：SpotMicroAI 四足机器狗项目
