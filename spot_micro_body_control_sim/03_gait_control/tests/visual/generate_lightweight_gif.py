@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle, Circle
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, module_root)
 from gait_algo_core.walk_gait import WalkGait
 
 # 使用英文标签避免字体问题
