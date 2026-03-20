@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotMicro 步态控制面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .value-display {
+            min-width: 80px;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: 500;
+            color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn-stand {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-stand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(79, 172, 254, 0.3);
+        }
+        
+        .status-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .status-panel h2 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .status-running {
+            color: #28a745;
+        }
+        
+        .status-stopped {
+            color: #dc3545;
+        }
+        
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .updating {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 SpotMicro 步态控制面板</h1>
+        
+        <div id="connectionStatus" class="connection-status disconnected">
+            ⚠️ 未连接到机器人
+        </div>
+        
+        <!-- 步态参数控制 -->
+        <div class="section">
+            <h2>📊 步态参数设置</h2>
+            
+            <div class="control-group">
+                <label>步长 (Stride Length):</label>
+                <div class="slider-container">
+                    <input type="range" id="strideLength" min="20" max="80" value="50" step="1">
+                    <span class="value-display" id="strideLengthValue">50 mm</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>步高 (Step Height):</label>
+                <div class="slider-container">
+                    <input type="range" id="stepHeight" min="10" max="50" value="30" step="1">
+                    <span class="value-display" id="stepHeightValue">30 mm</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>步频 (Frequency):</label>
+                <div class="slider-container">
+                    <input type="range" id="frequency" min="0.3" max="1.5" value="0.8" step="0.1">
+                    <span class="value-display" id="frequencyValue">0.8 Hz</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div class="section">
+            <h2>🎮 步态控制</h2>
+            
+            <div class="button-group">
+                <button class="btn-start" onclick="startWalkGait()">
+                    ▶️ 启动 Walk 步态
+                </button>
+                <button class="btn-stop" onclick="stopGait()">
+                    ⏹️ 停止步态
+                </button>
+                <button class="btn-stand" onclick="standPose()">
+                    🧍 站立姿势
+                </button>
+            </div>
+        </div>
+        
+        <!-- 状态显示 -->
+        <div class="status-panel">
+            <h2>📈 实时状态</h2>
+            
+            <div class="status-item">
+                <span class="status-label">步态状态:</span>
+                <span class="status-value" id="gaitStatus">已停止</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">全局相位:</span>
+                <span class="status-value" id="globalPhase">0.00</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">支撑腿数量:</span>
+                <span class="status-value" id="supportLegs">0</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">当前步长:</span>
+                <span class="status-value" id="currentStride">50 mm</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">当前步高:</span>
+                <span class="status-value" id="currentHeight">30 mm</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="status-label">当前步频:</span>
+                <span class="status-value" id="currentFrequency">0.8 Hz</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws;
+        let isConnected = false;
+        
+        // 连接 WebSocket
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.hostname}/ws`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                isConnected = true;
+                updateConnectionStatus(true);
+                console.log('WebSocket 已连接');
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                updateConnectionStatus(false);
+                console.log('WebSocket 已断开');
+                
+                // 5秒后重连
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket 错误:', error);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                } catch (e) {
+                    console.error('解析消息失败:', e);
+                }
+            };
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = '✅ 已连接到机器人';
+                statusEl.className = 'connection-status connected';
+            } else {
+                statusEl.textContent = '⚠️ 未连接到机器人';
+                statusEl.className = 'connection-status disconnected';
+            }
+        }
+        
+        // 处理服务器消息
+        function handleServerMessage(data) {
+            if (data.type === 'gait_state') {
+                updateGaitState(data);
+            } else if (data.type === 'ack') {
+                console.log('命令已确认:', data.message);
+            }
+        }
+        
+        // 更新步态状态
+        function updateGaitState(state) {
+            document.getElementById('gaitStatus').textContent = 
+                state.is_running ? '运行中' : '已停止';
+            document.getElementById('gaitStatus').className = 
+                'status-value ' + (state.is_running ? 'status-running' : 'status-stopped');
+            
+            document.getElementById('globalPhase').textContent = 
+                state.global_phase.toFixed(2);
+            document.getElementById('supportLegs').textContent = 
+                state.support_legs;
+            document.getElementById('currentStride').textContent = 
+                (state.stride_length * 1000).toFixed(1) + ' mm';
+            document.getElementById('currentHeight').textContent = 
+                (state.step_height * 1000).toFixed(1) + ' mm';
+            document.getElementById('currentFrequency').textContent = 
+                state.frequency.toFixed(1) + ' Hz';
+        }
+        
+        // 发送命令
+        function sendCommand(command, params = {}) {
+            if (!isConnected) {
+                alert('未连接到机器人，请稍候重试');
+                return;
+            }
+            
+            const message = {
+                command: command,
+                params: params
+            };
+            
+            ws.send(JSON.stringify(message));
+            console.log('发送命令:', message);
+        }
+        
+        // 启动 Walk 步态
+        function startWalkGait() {
+            const strideLength = document.getElementById('strideLength').value / 1000; // mm -> m
+            const stepHeight = document.getElementById('stepHeight').value / 1000; // mm -> m
+            const frequency = parseFloat(document.getElementById('frequency').value);
+            
+            sendCommand('start_walk_gait', {
+                stride_length: strideLength,
+                step_height: stepHeight,
+                frequency: frequency
+            });
+        }
+        
+        // 停止步态
+        function stopGait() {
+            sendCommand('stop_gait', {});
+        }
+        
+        // 站立姿势
+        function standPose() {
+            sendCommand('stand_pose', {});
+        }
+        
+        // 滑块值更新
+        document.getElementById('strideLength').addEventListener('input', function() {
+            document.getElementById('strideLengthValue').textContent = this.value + ' mm';
+        });
+        
+        document.getElementById('stepHeight').addEventListener('input', function() {
+            document.getElementById('stepHeightValue').textContent = this.value + ' mm';
+        });
+        
+        document.getElementById('frequency').addEventListener('input', function() {
+            document.getElementById('frequencyValue').textContent = this.value + ' Hz';
+        });
+        
+        // 页面加载时连接 WebSocket
+        window.addEventListener('load', () => {
+            connectWebSocket();
+            
+            // 每 100ms 请求一次状态更新
+            setInterval(() => {
+                if (isConnected) {
+                    sendCommand('get_gait_state', {});
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
