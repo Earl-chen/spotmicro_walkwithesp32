@@ -33,7 +33,7 @@ else:
 plt.rcParams['axes.unicode_minus'] = False
 
 
-def create_walking_animation(steering_angle=0.0, output_file='walking_animation.gif'):
+def create_walking_animation(steering_angle=0.0, output_file=None):
     """
     创建行走动画
     
@@ -41,6 +41,10 @@ def create_walking_animation(steering_angle=0.0, output_file='walking_animation.
         steering_angle: 转向角度（弧度）
         output_file: 输出文件名
     """
+    # 默认输出到脚本所在目录
+    if output_file is None:
+        output_file = os.path.join(os.path.dirname(__file__), 'walking_animation.gif')
+    
     print(f"\n生成行走动画（转向角度={steering_angle*180/np.pi:.1f}°）...")
     
     # 创建步态控制器

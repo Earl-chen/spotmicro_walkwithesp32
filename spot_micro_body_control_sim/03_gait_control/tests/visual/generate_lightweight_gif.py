@@ -23,7 +23,7 @@ plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 
-def create_lightweight_walking_gif(steering_angle=0.0, output_file='walk.gif'):
+def create_lightweight_walking_gif(steering_angle=0.0, output_file=None):
     """
     创建轻量级行走动画
     
@@ -31,6 +31,10 @@ def create_lightweight_walking_gif(steering_angle=0.0, output_file='walk.gif'):
         steering_angle: 转向角度（弧度）
         output_file: 输出文件名
     """
+    # 默认输出到脚本所在目录
+    if output_file is None:
+        output_file = os.path.join(os.path.dirname(__file__), 'walk.gif')
+    
     angle_deg = steering_angle * 180 / np.pi
     print(f"生成行走 GIF（{angle_deg:.0f}°）...", end=' ')
     

@@ -237,7 +237,7 @@ def verify_duty_cycle():
     
     plt.tight_layout()
     
-    output_path = 'duty_cycle_verification.png'
+    output_path = os.path.join(os.path.dirname(__file__), 'duty_cycle_verification.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"  ✅ 图表已保存: {output_path}")
     

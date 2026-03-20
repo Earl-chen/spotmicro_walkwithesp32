@@ -195,7 +195,7 @@ ax4.axis('equal')
 plt.tight_layout()
 
 # 保存图片
-output_path = os.path.join(module_root, 'gait_trajectory_v2.png')
+output_path = os.path.join(os.path.dirname(__file__), 'gait_trajectory_v2.png')
 plt.savefig(output_path, dpi=150, bbox_inches='tight')
 
 file_size = os.path.getsize(output_path) / 1024

@@ -109,7 +109,7 @@ def generate_steering_comparison():
         ax_yz.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    output_file = 'tests/visual/steering_comparison.png'
+    output_file = os.path.join(os.path.dirname(__file__), 'steering_comparison.png')
     plt.savefig(output_file, dpi=150, bbox_inches='tight')
     print(f"✅ 已保存: {output_file}")
     plt.close()
@@ -183,7 +183,7 @@ def generate_steering_animation():
     anim = FuncAnimation(fig, update, frames=100, 
                         interval=20, blit=True)
     
-    output_file = 'tests/visual/steering_animation.gif'
+    output_file = os.path.join(os.path.dirname(__file__), 'steering_animation.gif')
     anim.save(output_file, writer='pillow', fps=50)
     print(f"✅ 已保存: {output_file}")
     plt.close()
