@@ -128,19 +128,19 @@ class WalkGait:
         
         # 根据轨迹类型生成轨迹
         if self.trajectory_type == 'cycloid':
-            x, z = TrajectoryGenerator.cycloid_trajectory(
+            x, y, z = TrajectoryGenerator.cycloid_trajectory(
                 leg_phase, 
                 self.stride_length, 
                 self.step_height
             )
         elif self.trajectory_type == 'ellipse':
-            x, z = TrajectoryGenerator.ellipse_trajectory(
+            x, y, z = TrajectoryGenerator.ellipse_trajectory(
                 leg_phase, 
                 self.stride_length, 
                 self.step_height
             )
         elif self.trajectory_type == 'bezier':
-            x, z = TrajectoryGenerator.bezier_trajectory(
+            x, y, z = TrajectoryGenerator.bezier_trajectory(
                 leg_phase, 
                 self.stride_length, 
                 self.step_height
@@ -148,6 +148,8 @@ class WalkGait:
         else:
             raise ValueError(f"Unknown trajectory type: {self.trajectory_type}")
         
+        # 注意：y 轴偏移用于转向功能，基础步态中为0
+        # 返回 (x, z) 保持向后兼容
         return x, z
     
     def get_all_foot_trajectories(self) -> Dict[str, Tuple[float, float]]:
