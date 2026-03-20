@@ -25,8 +25,10 @@
 // 机器人控制系统
 #include "controllers/RobotController.hpp"
 #include "controllers/SmoothMotionController.hpp"
+#include "controllers/GaitController.hpp"          // 新增：步态控制器
 #include "kinematics/QuadrupedModel.hpp"
 #include "utils/Logger.hpp"
+#include "gait/WalkGait.hpp"                       // 新增：Walk步态算法
 
 using namespace Robot;
 using namespace Robot::Controllers;
@@ -37,6 +39,10 @@ static std::shared_ptr<RobotController> g_robot_controller_;
 static std::unique_ptr<SmoothMotionController> g_smooth_controller_;
 static std::shared_ptr<QuadrupedModel> g_quadruped_model_;
 static bool g_smooth_motion_initialized_ = false;
+
+// 步态控制器（新增）
+static std::unique_ptr<Gait::WalkGait> g_walk_gait_;
+static bool g_gait_running_ = false;
 
 // 桥接层内部状态
 static bool g_bridge_initialized_ = false;
@@ -563,4 +569,124 @@ extern "C" int robot_bridge_set_preset_pose(int pose_id) {
     
     set_last_error("Preset pose execution failed");
     return ROBOT_BRIDGE_ERROR_IO;
+}
+
+// ========== 步态控制接口实现 ==========
+
+extern "C" int robot_bridge_start_walk_gait(float stride_length, float step_height, float frequency) {
+    if (!g_bridge_initialized_) {
+        set_last_error("Bridge not initialized");
+        return ROBOT_BRIDGE_ERROR_UNINIT;
+    }
+    
+    // 参数验证
+    if (stride_length < 0.02f || stride_length > 0.08f) {
+        set_last_error("stride_length out of range [0.02, 0.08]");
+        return ROBOT_BRIDGE_ERROR_PARAM;
+    }
+    
+    if (step_height < 0.01f || step_height > 0.05f) {
+        set_last_error("step_height out of range [0.01, 0.05]");
+        return ROBOT_BRIDGE_ERROR_PARAM;
+    }
+    
+    if (frequency < 0.3f || frequency > 1.5f) {
+        set_last_error("frequency out of range [0.3, 1.5]");
+        return ROBOT_BRIDGE_ERROR_PARAM;
+    }
+    
+    // 创建步态控制器
+    if (!g_walk_gait_) {
+        g_walk_gait_ = std::make_unique<Gait::WalkGait>(stride_length, step_height, frequency);
+    } else {
+        g_walk_gait_->set_parameters(stride_length, step_height, frequency);
+    }
+    
+    g_gait_running_ = true;
+    
+    ESP_LOGI(TAG, "✅ 启动 Walk 步态: 步长=%.1fmm, 步高=%.1fmm, 步频=%.2fHz",
+             stride_length * 1000, step_height * 1000, frequency);
+    
+    return ROBOT_BRIDGE_OK;
+}
+
+extern "C" int robot_bridge_stop_gait(void) {
+    if (!g_bridge_initialized_) {
+        set_last_error("Bridge not initialized");
+        return ROBOT_BRIDGE_ERROR_UNINIT;
+    }
+    
+    g_gait_running_ = false;
+    
+    // 回到站立姿势
+    if (g_robot_controller_) {
+        auto joint_controller = g_robot_controller_->getJointController();
+        if (joint_controller) {
+            joint_controller->setStandPose();
+        }
+    }
+    
+    ESP_LOGI(TAG, "✅ 停止步态，回到站立姿势");
+    
+    return ROBOT_BRIDGE_OK;
+}
+
+extern "C" void robot_bridge_update_gait(float dt) {
+    if (!g_bridge_initialized_ || !g_gait_running_ || !g_walk_gait_) {
+        return;
+    }
+    
+    // 更新步态相位
+    g_walk_gait_->update(dt);
+    
+    // 获取所有腿的轨迹
+    auto trajectories = g_walk_gait_->get_all_foot_trajectories();
+    
+    // TODO: 将轨迹应用到腿部控制
+    // 这需要结合逆运动学（IK）计算
+    
+    // 调试输出（每1秒输出一次）
+    static float debug_timer = 0.0f;
+    debug_timer += dt;
+    if (debug_timer >= 1.0f) {
+        debug_timer = 0.0f;
+        
+        auto state = g_walk_gait_->get_state();
+        ESP_LOGI(TAG, "步态运行: 相位=%.2f, 支撑腿=%d",
+                 g_walk_gait_->get_global_phase(),
+                 g_walk_gait_->count_support_legs());
+    }
+}
+
+extern "C" int robot_bridge_get_gait_state(robot_gait_state_t* state) {
+    if (!state) {
+        set_last_error("Null state pointer");
+        return ROBOT_BRIDGE_ERROR_PARAM;
+    }
+    
+    if (!g_bridge_initialized_) {
+        set_last_error("Bridge not initialized");
+        return ROBOT_BRIDGE_ERROR_UNINIT;
+    }
+    
+    if (!g_walk_gait_) {
+        state->is_running = false;
+        state->global_phase = 0.0f;
+        state->stride_length = 0.0f;
+        state->step_height = 0.0f;
+        state->frequency = 0.0f;
+        state->support_legs = 0;
+        return ROBOT_BRIDGE_OK;
+    }
+    
+    auto gait_state = g_walk_gait_->get_state();
+    
+    state->is_running = g_gait_running_;
+    state->global_phase = g_walk_gait_->get_global_phase();
+    state->stride_length = gait_state.stride_length;
+    state->step_height = gait_state.step_height;
+    state->frequency = gait_state.frequency;
+    state->support_legs = g_walk_gait_->count_support_legs();
+    
+    return ROBOT_BRIDGE_OK;
 }

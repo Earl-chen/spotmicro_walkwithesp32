@@ -141,6 +141,54 @@ int robot_bridge_set_pwm(int channel, uint16_t pwm_value);
  */
 int robot_bridge_set_preset_pose(int pose_id);
 
+// ========== 步态控制接口 ==========
+
+/**
+ * @brief 步态状态结构体
+ */
+typedef struct {
+    bool is_running;        // 步态是否运行中
+    float global_phase;     // 全局相位 (0-1)
+    float stride_length;    // 步长 (米)
+    float step_height;      // 步高 (米)
+    float frequency;        // 步频 (Hz)
+    int support_legs;       // 当前支撑腿数量
+} robot_gait_state_t;
+
+/**
+ * @brief 启动 Walk 步态
+ * 
+ * @param stride_length 步长 (米，范围：0.02 ~ 0.08)
+ * @param step_height 步高 (米，范围：0.01 ~ 0.05)
+ * @param frequency 步频 (Hz，范围：0.3 ~ 1.5)
+ * @return 0=成功，负值=错误码
+ */
+int robot_bridge_start_walk_gait(float stride_length, float step_height, float frequency);
+
+/**
+ * @brief 停止步态
+ * 
+ * 平滑停止当前步态，机器人回到站立姿势
+ * 
+ * @return 0=成功，负值=错误码
+ */
+int robot_bridge_stop_gait(void);
+
+/**
+ * @brief 更新步态（主循环调用）
+ * 
+ * @param dt 时间步长 (秒，通常为0.02)
+ */
+void robot_bridge_update_gait(float dt);
+
+/**
+ * @brief 获取步态状态
+ * 
+ * @param state 输出步态状态
+ * @return 0=成功，负值=错误码
+ */
+int robot_bridge_get_gait_state(robot_gait_state_t* state);
+
 #ifdef __cplusplus
 }
 #endif
