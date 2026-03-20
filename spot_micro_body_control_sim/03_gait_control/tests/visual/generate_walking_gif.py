@@ -43,7 +43,7 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
     """
     # 默认输出到脚本所在目录
     if output_file is None:
-        output_file = os.path.join(os.path.dirname(__file__), 'walking_animation.gif')
+        output_file = os.path.join(os.getcwd(), 'walking_animation.gif')
     
     print(f"\n生成行走动画（转向角度={steering_angle*180/np.pi:.1f}°）...")
     

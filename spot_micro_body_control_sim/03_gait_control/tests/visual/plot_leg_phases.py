@@ -161,7 +161,7 @@ def plot_leg_phases():
     plt.tight_layout()
     
     # 保存图片
-    output_path = os.path.join(os.path.dirname(__file__), 'leg_phase_diagram.png')
+    output_path = os.path.join(os.getcwd(), 'leg_phase_diagram.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"✅ 相位图已保存: {output_path}")
     

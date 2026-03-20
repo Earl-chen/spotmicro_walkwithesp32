@@ -33,7 +33,7 @@ def create_lightweight_walking_gif(steering_angle=0.0, output_file=None):
     """
     # 默认输出到脚本所在目录
     if output_file is None:
-        output_file = os.path.join(os.path.dirname(__file__), 'walk.gif')
+        output_file = os.path.join(os.getcwd(), 'walk.gif')
     
     angle_deg = steering_angle * 180 / np.pi
     print(f"生成行走 GIF（{angle_deg:.0f}°）...", end=' ')

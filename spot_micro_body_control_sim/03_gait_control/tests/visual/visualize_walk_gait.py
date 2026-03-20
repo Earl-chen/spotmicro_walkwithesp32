@@ -138,7 +138,7 @@ def plot_trajectory_2d():
     plt.tight_layout()
     
     # 保存图片
-    output_path = os.path.join(os.path.dirname(__file__), 'walk_gait_trajectory_2d.png')
+    output_path = os.path.join(os.getcwd(), 'walk_gait_trajectory_2d.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"✅ 2D轨迹图已保存: {output_path}")
     
@@ -240,7 +240,7 @@ def plot_gait_sequence_3d():
     plt.tight_layout()
     
     # 保存图片
-    output_path = os.path.join(os.path.dirname(__file__), 'walk_gait_sequence_3d.png')
+    output_path = os.path.join(os.getcwd(), 'walk_gait_sequence_3d.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"✅ 3D步态序列图已保存: {output_path}")
     
@@ -338,7 +338,7 @@ def create_animation():
     anim = FuncAnimation(fig, update, frames=100, interval=50, blit=False)
     
     # 保存动画
-    output_path = os.path.join(os.path.dirname(__file__), 'walk_gait_animation.gif')
+    output_path = os.path.join(os.getcwd(), 'walk_gait_animation.gif')
     print(f"正在保存动画到: {output_path}")
     print("（这可能需要几秒钟...）")
     
@@ -389,7 +389,7 @@ def plot_phase_diagram():
     plt.tight_layout()
     
     # 保存图片
-    output_path = os.path.join(os.path.dirname(__file__), 'walk_gait_phase_diagram.png')
+    output_path = os.path.join(os.getcwd(), 'walk_gait_phase_diagram.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"✅ 相位图已保存: {output_path}")
     
