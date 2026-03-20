@@ -10,7 +10,7 @@ from matplotlib import font_manager as fm
 import numpy as np
 
 # 添加项目根目录
-module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, module_root)
 
 from gait_algo_core.walk_gait import WalkGait
