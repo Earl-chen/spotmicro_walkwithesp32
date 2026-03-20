@@ -30,11 +30,12 @@ L3 = 111.126  # 大腿长度
 L4 = 118.5   # 小腿长度
 
 # 髋关节位置（相对于身体中心）
+# 使用与 WalkGait 一致的腿部名称
 HIP_POSITIONS = {
-    'LF': (78, 39, 0),   # 左前
-    'RF': (78, -39, 0),  # 右前
-    'LB': (-78, 39, 0),  # 左后
-    'RB': (-78, -39, 0)  # 右后
+    'right_front': (78, -39, 0),  # 右前
+    'left_front': (78, 39, 0),    # 左前
+    'right_back': (-78, -39, 0),  # 右后
+    'left_back': (-78, 39, 0)     # 左后
 }
 
 def setup_chinese_font():
@@ -131,10 +132,10 @@ def draw_robot_2d(ax, gait, phase):
     
     # 腿部颜色
     leg_colors = {
-        'LF': '#FF6B6B',  # 红色 - 左前
-        'RF': '#4ECDC4',  # 青色 - 右前
-        'LB': '#45B7D1',  # 蓝色 - 左后
-        'RB': '#FFA07A'   # 橙色 - 右后
+        'left_front': '#FF6B6B',   # 红色 - 左前
+        'right_front': '#4ECDC4',  # 青色 - 右前
+        'left_back': '#45B7D1',    # 蓝色 - 左后
+        'right_back': '#FFA07A'    # 橙色 - 右后
     }
     
     # 获取所有腿的轨迹
