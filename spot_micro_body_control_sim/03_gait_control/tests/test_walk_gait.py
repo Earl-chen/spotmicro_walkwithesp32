@@ -35,7 +35,7 @@ def test_trajectory_generator():
     print("相位  | X偏移(mm) | Z偏移(mm) | 说明")
     print("-" * 50)
     for phase in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
-        x, z = TrajectoryGenerator.cycloid_trajectory(phase, 0.05, 0.03)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(phase, 0.05, 0.03)
         desc = "摆动相" if phase < 0.5 else "支撑相"
         print(f"{phase:4.1f}  | {x*1000:9.1f} | {z*1000:9.1f} | {desc}")
     
@@ -44,7 +44,7 @@ def test_trajectory_generator():
     print("相位  | X偏移(mm) | Z偏移(mm)")
     print("-" * 40)
     for phase in [0.0, 0.25, 0.5, 0.75, 1.0]:
-        x, z = TrajectoryGenerator.ellipse_trajectory(phase, 0.05, 0.03)
+        x, y, z = TrajectoryGenerator.ellipse_trajectory(phase, 0.05, 0.03)
         print(f"{phase:4.2f}  | {x*1000:9.1f} | {z*1000:9.1f}")
     
     print("\n✅ 轨迹生成器测试通过")

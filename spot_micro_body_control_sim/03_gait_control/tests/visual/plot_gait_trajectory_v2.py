@@ -90,7 +90,7 @@ for leg in legs:
     for phase in phases:
         gait.global_phase = phase
         leg_phase = gait.get_leg_phase(leg)
-        x, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
         x_values.append(x * 100)
     
     ax1.plot(phases, x_values, label=leg_names_cn[leg], 
@@ -111,7 +111,7 @@ for leg in legs:
     for phase in phases:
         gait.global_phase = phase
         leg_phase = gait.get_leg_phase(leg)
-        x, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
         z_values.append(z * 100)
     
     ax2.plot(phases, z_values, label=leg_names_cn[leg], 
@@ -133,7 +133,7 @@ for leg in legs:
     for phase in phases:
         gait.global_phase = phase
         leg_phase = gait.get_leg_phase(leg)
-        x, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
         x_values.append(x * 100)
         z_values.append(z * 100)
     
@@ -163,7 +163,7 @@ stance_z = []
 for phase in phases:
     gait.global_phase = phase
     leg_phase = gait.get_leg_phase(leg)
-    x, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
+    x, y, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
     
     if leg_phase < 0.25:
         swing_x.append(x * 100)

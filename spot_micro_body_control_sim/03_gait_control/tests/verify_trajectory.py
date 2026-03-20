@@ -61,14 +61,14 @@ def verify_trajectory():
     z_values = []
     
     for phase in phases:
-        x, z = TrajectoryGenerator.cycloid_trajectory(phase, stride_length, step_height)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(phase, stride_length, step_height)
         x_values.append(x * 100)  # 转换为cm
         z_values.append(z * 100)
     
     # 输出关键点
     print("\n【关键点验证】")
     for phase in [0.0, 0.25, 0.5, 0.75, 1.0]:
-        x, z = TrajectoryGenerator.cycloid_trajectory(phase, stride_length, step_height)
+        x, y, z = TrajectoryGenerator.cycloid_trajectory(phase, stride_length, step_height)
         print(f"  相位{phase:.2f}: x={x*100:+6.2f}cm, z={z*100:+6.2f}cm")
     
     # 验证范围

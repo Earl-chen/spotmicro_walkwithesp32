@@ -65,8 +65,6 @@ class TrajectoryGenerator:
         y = 0  # 默认无侧向偏移
         
         return x, y, z
-        
-        return x, z
     
     @staticmethod
     def ellipse_trajectory(phase: float, stride_length: float, step_height: float) -> tuple:
@@ -93,8 +91,9 @@ class TrajectoryGenerator:
         angle = phase * 2 * np.pi
         x = stride_length / 2 * np.cos(angle)
         z = step_height * (1 + np.sin(angle)) / 2  # 只取上半椭圆
+        y = 0  # 默认无侧向偏移
         
-        return x, z
+        return x, y, z
     
     @staticmethod
     def bezier_trajectory(phase: float, stride_length: float, step_height: float) -> tuple:
@@ -119,8 +118,9 @@ class TrajectoryGenerator:
         t = phase
         x = 2 * (1 - t) * t * (stride_length / 2) + t * t * stride_length
         z = 2 * (1 - t) * t * step_height
+        y = 0  # 默认无侧向偏移
         
-        return x, z
+        return x, y, z
 
 
 # 单元测试
