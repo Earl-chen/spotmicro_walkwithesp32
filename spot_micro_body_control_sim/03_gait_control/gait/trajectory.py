@@ -60,6 +60,12 @@ class TrajectoryGenerator:
             # Z着地（高度为0）
             z = 0
         
+        # Y轴轨迹（用于转向）
+        # 转向时，y轴会产生侧向偏移
+        y = 0  # 默认无侧向偏移
+        
+        return x, y, z
+        
         return x, z
     
     @staticmethod
