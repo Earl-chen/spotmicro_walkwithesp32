@@ -10,24 +10,30 @@ SpotMicro四足机器人步态控制模块
 ├── gait/                        # 核心算法
 │   ├── __init__.py
 │   ├── trajectory.py            # 轨迹生成器（占空比25%/75%）
-│   ├── walk_gait.py             # Walk步态控制器
-│   └── gait_controller.py       # 通用步态控制器
-├── docs/                        # 文档
-│   ├── 工作总结.md              # 完整工作总结（12章节）
-│   ├── 步态修正计划.md          # 步态修正详细计划
-│   ├── Walk步态占空比修正计划.md # 占空比修正计划
-│   └── 运行指南.md              # 详细运行说明
-├── tests/                       # 测试脚本
+│   └── walk_gait.py             # Walk步态控制器
+├── tests/                       # 测试和验证
 │   ├── test_walk_gait.py        # 综合测试
 │   ├── verify_duty_cycle.py     # 占空比验证
 │   ├── verify_support_legs.py   # 支撑腿验证
-│   └── verify_trajectory.py     # 轨迹验证
-├── visualization/               # 可视化工具
-│   ├── visualize_walk_gait.py       # 步态可视化
-│   ├── plot_gait_trajectory_v2.py   # 轨迹绘制
-│   └── plot_leg_phases.py           # 相位图绘制
-└── fonts/                       # 字体文件
-    └── BabelStoneHan.ttf        # 中文字体（Git LFS）
+│   ├── verify_trajectory.py     # 轨迹验证
+│   ├── visual/                  # 可视化验证工具
+│   │   ├── visualize_walk_gait.py
+│   │   ├── plot_gait_trajectory_v2.py
+│   │   └── plot_leg_phases.py
+│   └── output/                  # 生成的图片和动画
+│       ├── gait_trajectory_v2.png (291KB)
+│       └── walk_gait_animation.gif
+├── docs/                        # 文档
+│   ├── 工作总结.md
+│   ├── 步态修正计划.md
+│   ├── Walk步态占空比修正计划.md
+│   └── 运行指南.md
+└── backups/                     # 备份文件
+    ├── trajectory.py.backup
+    └── trajectory.py.backup2
+
+共享资源（平级）:
+../fonts/BabelStoneHan.ttf       # 中文字体（Git LFS）
 ```
 
 ## 🚀 快速开始

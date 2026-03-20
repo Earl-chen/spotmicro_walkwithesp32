@@ -37,9 +37,9 @@ env/
 .DS_Store
 Thumbs.db
 
-# Generated Files
-visualization/output/*.png
-visualization/output/*.gif
+# Generated Files (test outputs)
+tests/visual/*.png
+tests/visual/*.gif
 *.log
 
 # Backups

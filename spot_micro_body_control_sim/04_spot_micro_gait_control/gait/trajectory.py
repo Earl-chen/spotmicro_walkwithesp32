@@ -54,9 +54,9 @@ class TrajectoryGenerator:
             # Z抬起（摆线轨迹）
             z = step_height * (1 - np.cos(t)) / 2
         else:  # ✅ 支撑相（75%）- 从0.5改为0.25
-            t = (phase - 0.25) * 4 / 3 * np.pi  # ✅ 调整时间映射
-            # X从 +stride_length/2 → -stride_length/2
-            x = stride_length / 2 * (1 - t / np.pi)
+            t = (phase - 0.25) * 4 / 3  # ✅ 修正：去掉π，t从0到1
+            # X从 +stride_length/2 → -stride_length/2（修正后连续）
+            x = stride_length / 2 * (1 - 2 * t)
             # Z着地（高度为0）
             z = 0
         
