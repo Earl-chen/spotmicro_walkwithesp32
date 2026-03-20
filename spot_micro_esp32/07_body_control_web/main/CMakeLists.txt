@@ -39,6 +39,7 @@ idf_component_register(
         "drivers"
         "controllers"
         "kinematics"
+        "gait"                                   # 新增：步态控制算法
 
     REQUIRES pca9685 esp_http_server esp_wifi esp_netif esp_event nvs_flash json esp-tls
     PRIV_REQUIRES esp_timer
