@@ -5,9 +5,9 @@ SpotMicro四足机器人步态控制模块
 ## 📋 目录结构
 
 ```
-04_spot_micro_gait_control/
+03_gait_control/
 ├── README.md                    # 本文件
-├── gait/                        # 核心算法
+├── gait_algo_core/              # 核心算法（独立库）
 │   ├── __init__.py
 │   ├── trajectory.py            # 轨迹生成器（占空比25%/75%）
 │   └── walk_gait.py             # Walk步态控制器

@@ -7,7 +7,7 @@ import os
 module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 def verify_support_legs():
     """验证每个时刻有几条腿支撑"""

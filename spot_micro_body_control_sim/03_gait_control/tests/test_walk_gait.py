@@ -20,8 +20,8 @@ module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
 # 导入步态模块
-from gait.trajectory import TrajectoryGenerator
-from gait.walk_gait import WalkGait
+from gait_algo_core.trajectory import TrajectoryGenerator
+from gait_algo_core.walk_gait import WalkGait
 
 
 def test_trajectory_generator():

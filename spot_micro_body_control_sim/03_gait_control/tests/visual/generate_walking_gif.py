@@ -16,7 +16,7 @@ from matplotlib.patches import Rectangle, Circle
 import matplotlib.font_manager as fm
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 # 配置字体（优先使用系统中文字体）
 font_list = [f.name for f in fm.fontManager.ttflist]

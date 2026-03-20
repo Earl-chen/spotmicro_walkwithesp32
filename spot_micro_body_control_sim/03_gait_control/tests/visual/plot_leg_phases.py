@@ -13,7 +13,7 @@ import numpy as np
 module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 # 配置中文字体（兼容低版本matplotlib）
 # 优先使用项目目录下的字体，然后检查其他候选字体

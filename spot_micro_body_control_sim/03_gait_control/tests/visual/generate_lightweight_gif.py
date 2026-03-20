@@ -15,7 +15,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle, Circle
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 # 使用英文标签避免字体问题
 plt.rcParams['font.sans-serif'] = ['DejaVu Sans']

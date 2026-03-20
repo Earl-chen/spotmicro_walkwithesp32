@@ -18,7 +18,7 @@ matplotlib.rcParams['font.sans-serif'] = ['BabelStone Han', 'SimHei', 'DejaVu Sa
 matplotlib.rcParams['axes.unicode_minus'] = False
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 def generate_steering_comparison():
     """生成转向对比图"""

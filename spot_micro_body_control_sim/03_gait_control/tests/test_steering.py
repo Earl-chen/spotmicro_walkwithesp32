@@ -12,7 +12,7 @@ import numpy as np
 # 添加模块路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from gait.walk_gait import WalkGait
+from gait_algo_core.walk_gait import WalkGait
 
 def test_steering_functionality():
     """测试转向功能"""

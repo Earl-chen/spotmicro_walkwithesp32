@@ -13,7 +13,7 @@ import numpy as np
 module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
-from gait.trajectory import TrajectoryGenerator
+from gait_algo_core.trajectory import TrajectoryGenerator
 
 # 配置中文字体（兼容低版本matplotlib）
 font_candidates = [

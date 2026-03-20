@@ -13,8 +13,8 @@ import numpy as np
 module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
-from gait.walk_gait import WalkGait
-from gait.trajectory import TrajectoryGenerator
+from gait_algo_core.walk_gait import WalkGait
+from gait_algo_core.trajectory import TrajectoryGenerator
 
 print("="*70)
 print("开始绘制步态轨迹图（修正版）")
