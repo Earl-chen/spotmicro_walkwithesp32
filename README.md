@@ -4,46 +4,85 @@
 [![Platform](https://img.shields.io/badge/Platform-ESP32-orange.svg)](https://www.espressif.com/en/products/socs/esp32)
 [![Status](https://img.shields.io/badge/Status-开发中-yellow.svg)]()
 
-一个完整的四足机器人控制系统，包含 **ESP32 嵌入式固件**、**Python 3D 仿真** 和 **PC 端运动学验证工具**。
+一个完整的四足机器人控制系统，包含 **Python 快速原型**、**C++ 核心算法** 和 **ESP32 嵌入式固件**。
+
+---
+
+## 🔄 开发流程
+
+```
+1️⃣ Python 快速原型
+   spot_micro_body_control_sim/
+   ↓ 算法验证通过
+   
+2️⃣ C++ 实现（PC端验证）
+   algorithms/
+   ├── kinematics/    运动学
+   └── gait/          步态
+   ↓ C++ 验证通过
+   
+3️⃣ ESP32 部署（复用C++代码）
+   spot_micro_esp32/
+```
 
 ---
 
 ## 📁 项目结构
 
 ```
-Ai_Code/
-├── spot_micro_esp32/              # 🔧 ESP32 固件项目 (1.2GB, 243个源文件)
-│   ├── 01_test_pca9685_standalone/         # ⭐ PCA9685驱动测试 (1,765行)
-│   ├── 02_test_servo_angle_control/        # ⭐⭐ 舵机角度控制 (3,347行)
-│   ├── 03_test_joint_controller/           # ⭐⭐⭐ 关节控制器 (7,954行)
-│   ├── 04_test_kinematics_controller/      # ⭐⭐⭐⭐ 运动学控制器 (8,180行)
-│   ├── 05_test_smooth_motion_controller/   # ⭐⭐⭐⭐ 平滑运动控制器 (7,836行)
-│   ├── 06_body_control_uart/               # ⭐⭐⭐⭐⭐ UART串口控制 (8,615行)
-│   └── 07_body_control_web/                # ⭐⭐⭐⭐⭐⭐ WiFi网页控制 (12,712行)
+spotmicro/
 │
-├── spot_micro_body_control_sim/   # 🖥️ Python 3D 仿真 (656KB)
-│   ├── 01_spot_micro_leg_kinematics_lab/   # 单腿运动学实验室
+├── algorithms/                    # 🧮 C++ 核心算法（PC验证+ESP32复用）
+│   │
+│   ├── kinematics/                # 运动学（FK/IK）
+│   │   ├── kinematics/            # 算法实现（6个文件）
+│   │   ├── tests/                 # 测试框架（2个文件）
+│   │   └── kinematics_test        # 命令行工具
+│   │
+│   └── gait/                      # 步态控制
+│       ├── gait/                  # 算法实现（3个文件）
+│       ├── tests/                 # 测试框架（1个文件）
+│       └── gait_test              # 命令行工具
+│
+│   # 💡 用途：Python验证 → C++实现 → ESP32部署
+│   # 与 spot_micro_esp32 共享相同代码
+│
+├── spot_micro_body_control_sim/   # 🐍 Python 快速原型（53个.py）
+│   ├── 01_spot_micro_leg_kinematics_lab/   # 单腿运动学实验
 │   ├── 02_spot_micro_simulator_standalone/ # 独立仿真器
-│   └── 03_spot_micro_simulator_framework/   # 完整仿真框架
+│   ├── 03_spot_micro_simulator_framework/  # 完整仿真框架（37个.py）
+│   ├── 04_spot_micro_gait_control/         # Walk步态控制（10个.py）
+│   └── fonts/                              # 共享字体
 │
-├── kinematics_test_standalone/   # 🧪 PC端运动学测试 (5.3MB)
-│   │                                       # 与 spot_micro_esp32 共享相同运动学代码
-│   │                                       # 用于在PC上验证算法后再部署到ESP32
-│   ├── kinematics/                          # 运动学库（与ESP32固件同源）
-│   ├── tests/                               # 测试框架
-│   └── kinematics_test_main.cpp             # 命令行测试程序
+├── spot_micro_esp32/              # 🔧 ESP32 固件（7个项目，19个.c/.h）
+│   ├── 01_test_pca9685_standalone/         # ⭐ PCA9685驱动测试
+│   ├── 02_test_servo_angle_control/        # ⭐⭐ 舵机角度控制
+│   ├── 03_test_joint_controller/           # ⭐⭐⭐ 关节控制器
+│   ├── 04_test_kinematics_controller/      # ⭐⭐⭐⭐ 运动学控制器
+│   ├── 05_test_smooth_motion_controller/   # ⭐⭐⭐⭐ 平滑运动控制器
+│   ├── 06_body_control_uart/               # ⭐⭐⭐⭐⭐ UART串口控制
+│   └── 07_body_control_web/                # ⭐⭐⭐⭐⭐⭐ WiFi网页控制
 │
-├── doc/                          # 📚 文档中心 (84KB)
+├── doc/                           # 📚 文档（4个.md）
 │   ├── 01_系统架构/                         # 系统架构设计
 │   ├── 02_运动学公式/                       # 运动学公式推导
-│   ├── 03_硬件相关/                         # 硬件连接、舵机校准
-│   ├── 04_使用指南/                         # 使用指南
-│   └── 05_历史归档/                         # 历史文档归档
+│   └── 03_硬件相关/                         # 硬件连接、舵机校准
 │
-├── CLAUDE.md                     # Claude Code 项目配置
-├── .gitignore                    # Git 忽略规则
-└── README.md                     # 本文档
+├── CLAUDE.md                      # Claude Code 项目配置
+├── .gitignore                     # Git 忽略规则
+└── README.md                      # 本文档
 ```
+
+---
+
+## 📊 项目统计
+
+| 模块 | 类型 | 文件数 | 用途 |
+|------|------|--------|------|
+| **algorithms/** | C++ | 14个 | 核心算法（PC验证+ESP32复用） |
+| **spot_micro_body_control_sim/** | Python | 53个 | 快速原型验证 |
+| **spot_micro_esp32/** | C | 19个 | 实机部署 |
+| **doc/** | Markdown | 4个 | 文档 |
 
 ---
 
@@ -121,22 +160,26 @@ cd spot_micro_body_control_sim/03_spot_micro_simulator_framework
 python3 app/spot_micro_app.py
 ```
 
-### PC 端运动学测试
+### 核心算法测试（algorithms/）
 
 ```bash
-# 编译运行
-cd kinematics_test_standalone
+# 运动学测试
+cd algorithms/kinematics
 make -f Makefile.kinematics_test
-./kinematics_test
+./kinematics_test --quick         # 快速验证
+./kinematics_test --roundtrip     # FK-IK往返测试
 
-# 快速验证
-./kinematics_test --quick
-
-# FK-IK往返测试（验证算法精度）
-./kinematics_test --roundtrip
+# 步态测试
+cd algorithms/gait
+make -f Makefile.gait_test
+./gait_test --quick               # 快速验证
+./gait_test --batch               # 批量测试
 ```
 
-> 💡 **用途**：本模块与 `spot_micro_esp32/` 共享相同的运动学算法代码。在修改运动学算法前，先在此验证 FK-IK 往返误差 < 0.001°，确保算法正确后再部署到 ESP32。
+> 💡 **开发流程**：
+> 1. **Python原型**：在 `spot_micro_body_control_sim/` 中快速验证算法思路
+> 2. **C++实现**：在 `algorithms/` 中实现算法，PC端验证通过
+> 3. **ESP32部署**：复用 `algorithms/` 的C++代码，部署到实机
 
 ---
 
