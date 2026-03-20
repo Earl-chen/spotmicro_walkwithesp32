@@ -642,8 +642,42 @@ extern "C" void robot_bridge_update_gait(float dt) {
     // 获取所有腿的轨迹
     auto trajectories = g_walk_gait_->get_all_foot_trajectories();
     
-    // TODO: 将轨迹应用到腿部控制
-    // 这需要结合逆运动学（IK）计算
+    // 应用到腿部控制（通过 IK 转换为关节角度）
+    if (g_robot_controller_ && g_quadruped_model_) {
+        auto joint_controller = g_robot_controller_->getJointController();
+        if (!joint_controller) {
+            return;
+        }
+        
+        using namespace Robot::Gait;
+        
+        // 遍历四条腿
+        for (const auto& pair : trajectories) {
+            LegIndex leg_index = pair.first;
+            const TrajectoryPoint& trajectory = pair.second;
+            
+            // 获取腿部基准位置（站立姿势）
+            // TODO: 需要从 QuadrupedModel 获取每条腿的基准位置
+            // 这里暂时使用固定值
+            float base_x = 0.0f;
+            float base_y = 0.0f;
+            float base_z = -0.15f;  // 站立高度 150mm
+            
+            // 计算目标位置（基准 + 轨迹偏移）
+            float target_x = base_x + trajectory.position.x;
+            float target_y = base_y + trajectory.position.y;
+            float target_z = base_z + trajectory.position.z;
+            
+            // 使用 IK 计算关节角度
+            // TODO: 调用 LegKinematics::inverse_kinematics()
+            // 这需要将腿部索引映射到具体的腿对象
+            
+            // 伪代码：
+            // int leg_id = static_cast<int>(leg_index);
+            // JointAngles angles = g_quadruped_model_->getLeg(leg_id).inverse_kinematics(target_x, target_y, target_z);
+            // joint_controller->setJointAngles(leg_id, angles);
+        }
+    }
     
     // 调试输出（每1秒输出一次）
     static float debug_timer = 0.0f;
@@ -651,7 +685,6 @@ extern "C" void robot_bridge_update_gait(float dt) {
     if (debug_timer >= 1.0f) {
         debug_timer = 0.0f;
         
-        auto state = g_walk_gait_->get_state();
         ESP_LOGI(TAG, "步态运行: 相位=%.2f, 支撑腿=%d",
                  g_walk_gait_->get_global_phase(),
                  g_walk_gait_->count_support_legs());
