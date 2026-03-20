@@ -27,32 +27,65 @@ from gait_algo_core.walk_gait import WalkGait
 
 
 def setup_chinese_font():
-    """配置中文字体"""
-    # 方法1: 使用系统字体（推荐）
-    font_paths = [
-        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',  # Noto Sans CJK SC
-        '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',  # Droid Sans Fallback
-        '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc',  # Noto Serif CJK SC
+    """配置中文字体（使用 BabelStoneHan.ttf）"""
+    # 仅使用相对路径
+    font_candidates = [
+        # 从 tests/visual/visualize_walk_gait.py 向上4级到 spot_micro_body_control_sim/fonts/
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'fonts', 'BabelStoneHan.ttf'),
     ]
     
-    for font_path in font_paths:
-        if os.path.exists(font_path):
+    chinese_font = None
+    font_loaded = False
+    
+    for font_path in font_candidates:
+        abs_path = os.path.abspath(font_path)
+        if os.path.exists(abs_path):
             try:
-                font_manager.fontManager.addfont(font_path)
-                font_prop = font_manager.FontProperties(fname=font_path)
-                plt.rcParams['font.family'] = font_prop.get_name()
-                plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
-                print(f"✅ 已加载中文字体: {font_path}")
-                return True
+                # 步骤1：清除字体缓存
+                try:
+                    font_manager._load_fontmanager(try_read_cache=False)
+                except:
+                    pass
+                
+                # 步骤2：注册字体
+                if hasattr(font_manager.fontManager, 'addfont'):
+                    font_manager.fontManager.addfont(abs_path)
+                
+                # 步骤3：创建 FontProperties
+                chinese_font = font_manager.FontProperties(fname=abs_path)
+                font_name = chinese_font.get_name()
+                
+                # 步骤4：检查字体管理器
+                registered_fonts = [f.name for f in font_manager.fontManager.ttflist]
+                if font_name not in registered_fonts:
+                    # 手动添加到字体列表
+                    font_entry = font_manager.FontEntry(
+                        fname=abs_path,
+                        name=font_name,
+                        style='normal',
+                        variant='normal',
+                        weight='normal',
+                        stretch='normal',
+                        size='medium'
+                    )
+                    font_manager.fontManager.ttflist.append(font_entry)
+                
+                # 步骤5：设置全局字体
+                plt.rcParams['font.family'] = font_name
+                plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans', 'Arial Unicode MS']
+                plt.rcParams['axes.unicode_minus'] = False
+                
+                print(f"✅ 已加载中文字体: {font_name}")
+                font_loaded = True
+                break
             except Exception as e:
-                print(f"⚠️ 加载字体失败 {font_path}: {e}")
+                print(f"⚠️ 加载字体失败: {e}")
                 continue
     
-    # 如果所有字体都失败，尝试使用字体名称
-    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC', 'Droid Sans Fallback', 'DejaVu Sans']
-    plt.rcParams['axes.unicode_minus'] = False
-    print("⚠️ 使用字体名称配置")
-    return False
+    if not font_loaded:
+        print("⚠️ 使用默认字体")
+    
+    return chinese_font
 
 
 def plot_trajectory_2d():
