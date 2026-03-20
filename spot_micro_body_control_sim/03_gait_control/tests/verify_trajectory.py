@@ -15,36 +15,97 @@ sys.path.insert(0, module_root)
 
 from gait_algo_core.trajectory import TrajectoryGenerator
 
-# 配置中文字体（兼容低版本matplotlib）
+# 配置中文字体（直接使用 BabelStoneHan.ttf，仅使用相对路径）
+print("=" * 70)
+print("【字体加载调试信息】")
+print("=" * 70)
+
+# 仅使用相对路径
 font_candidates = [
+    # 从 tests/verify_trajectory.py 向上3级到 spot_micro_body_control_sim/fonts/
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'fonts', 'BabelStoneHan.ttf'),
-    os.path.expanduser('~/BabelStoneHan.ttf'),
-    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-    '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
-    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
-    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
 ]
 
+print(f"字体候选路径数量: {len(font_candidates)}")
+for i, path in enumerate(font_candidates):
+    abs_path = os.path.abspath(path)
+    print(f"  路径{i+1}: {abs_path}")
+    print(f"    存在: {os.path.exists(abs_path)}")
+    if os.path.exists(abs_path):
+        print(f"    大小: {os.path.getsize(abs_path) / 1024 / 1024:.2f} MB")
+
 chinese_font = None
+font_loaded = False
+
 for font_path in font_candidates:
     if os.path.exists(font_path):
+        print(f"\n尝试加载字体: {font_path}")
         try:
-            # 尝试使用addfont方法（matplotlib 3.2+）
+            # 步骤1：清除字体缓存
+            print("  步骤1: 清除字体缓存...")
+            try:
+                fm._load_fontmanager(try_read_cache=False)
+                print("    ✅ 字体缓存已清除")
+            except Exception as e:
+                print(f"    ⚠️ 清除缓存失败: {e}")
+            
+            # 步骤2：注册字体
+            print("  步骤2: 注册字体...")
             if hasattr(fm.fontManager, 'addfont'):
                 fm.fontManager.addfont(font_path)
-            chinese_font = fm.FontProperties(fname=font_path)
+                print(f"    ✅ addfont 成功")
+            else:
+                print(f"    ⚠️ fontManager 没有 addfont 方法")
             
-            # 设置全局字体（兼容不同版本）
+            # 步骤3：创建 FontProperties
+            print("  步骤3: 创建 FontProperties...")
+            chinese_font = fm.FontProperties(fname=font_path)
             font_name = chinese_font.get_name()
+            print(f"    ✅ 字体名称: {font_name}")
+            
+            # 步骤4：检查字体管理器
+            print("  步骤4: 检查字体管理器...")
+            registered_fonts = [f.name for f in fm.fontManager.ttflist]
+            if font_name in registered_fonts:
+                print(f"    ✅ 字体已在字体管理器中")
+            else:
+                print(f"    ❌ 字体不在字体管理器中")
+                print(f"    尝试手动添加...")
+                # 手动添加到字体列表
+                font_entry = fm.FontEntry(
+                    fname=font_path,
+                    name=font_name,
+                    style='normal',
+                    variant='normal',
+                    weight='normal',
+                    stretch='normal',
+                    size='medium'
+                )
+                fm.fontManager.ttflist.append(font_entry)
+                print(f"    ✅ 已手动添加到字体列表")
+            
+            # 步骤5：设置全局字体
+            print("  步骤5: 设置全局字体...")
             plt.rcParams['font.family'] = font_name
-            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
+            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans', 'Arial Unicode MS']
             plt.rcParams['axes.unicode_minus'] = False
+            print(f"    ✅ font.family = {font_name}")
+            print(f"    ✅ font.sans-serif = {plt.rcParams['font.sans-serif']}")
+            
+            font_loaded = True
+            print("\n✅ 字体加载完成！")
             break
-        except:
+        except Exception as e:
+            print(f"  ❌ 字体加载失败: {e}")
+            import traceback
+            traceback.print_exc()
             continue
 
-if chinese_font is None:
+if not font_loaded:
+    print("\n❌ 未找到中文字体，使用默认字体")
     chinese_font = fm.FontProperties()
+
+print("=" * 70)
 
 def verify_trajectory():
     """验证修正后的轨迹"""
@@ -116,6 +177,12 @@ def verify_trajectory():
         checks.append(False)
     
     # 绘制轨迹
+    print("\n【绘图调试信息】")
+    print(f"  当前 font.family: {plt.rcParams['font.family']}")
+    print(f"  当前 font.sans-serif: {plt.rcParams['font.sans-serif']}")
+    print(f"  chinese_font 对象: {chinese_font}")
+    print(f"  chinese_font.get_name(): {chinese_font.get_name()}")
+    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     
     # 子图1: X和Z随相位变化
@@ -123,10 +190,10 @@ def verify_trajectory():
     ax1.plot(phases, z_values, label='Z偏移（上下）', linewidth=2, color='red')
     ax1.axhline(y=0, color='k', linestyle='--', alpha=0.3)
     ax1.axvline(x=0.5, color='gray', linestyle=':', alpha=0.5, label='摆动相/支撑相分界')
-    ax1.set_xlabel('相位', fontsize=12)
-    ax1.set_ylabel('偏移量 (cm)', fontsize=12)
-    ax1.set_title('足端轨迹随相位变化（修正后）', fontsize=14, fontweight='bold')
-    ax1.legend(fontsize=10)
+    ax1.set_xlabel('相位', fontsize=12, fontproperties=chinese_font)
+    ax1.set_ylabel('偏移量 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax1.set_title('足端轨迹随相位变化（修正后）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    ax1.legend(fontsize=10, prop=chinese_font)
     ax1.grid(True, alpha=0.3)
     
     # 子图2: 2D轨迹
@@ -139,10 +206,10 @@ def verify_trajectory():
                 edgecolors='black', linewidths=2, label='着地点（相位0.5）', zorder=5)
     ax2.axhline(y=0, color='k', linestyle='--', alpha=0.3)
     ax2.axvline(x=0, color='k', linestyle='--', alpha=0.3)
-    ax2.set_xlabel('X偏移 (cm)', fontsize=12)
-    ax2.set_ylabel('Z偏移 (cm)', fontsize=12)
-    ax2.set_title('足端2D轨迹（修正后）', fontsize=14, fontweight='bold')
-    ax2.legend(fontsize=10)
+    ax2.set_xlabel('X偏移 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax2.set_ylabel('Z偏移 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax2.set_title('足端2D轨迹（修正后）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    ax2.legend(fontsize=10, prop=chinese_font)
     ax2.grid(True, alpha=0.3)
     ax2.axis('equal')
     

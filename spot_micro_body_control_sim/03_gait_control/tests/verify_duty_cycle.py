@@ -14,35 +14,49 @@ sys.path.insert(0, module_root)
 
 from gait_algo_core.walk_gait import WalkGait
 
-# 配置中文字体（兼容低版本matplotlib）
+# 配置中文字体（直接使用 BabelStoneHan.ttf，仅使用相对路径）
 font_candidates = [
+    # 从 tests/verify_duty_cycle.py 向上3级到 spot_micro_body_control_sim/fonts/
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'fonts', 'BabelStoneHan.ttf'),
-    os.path.expanduser('~/BabelStoneHan.ttf'),
-    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-    '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
-    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
-    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
 ]
 
 chinese_font = None
+font_loaded = False
+
 for font_path in font_candidates:
     if os.path.exists(font_path):
         try:
-            # 尝试使用addfont方法（matplotlib 3.2+）
+            # 清除字体缓存
+            try:
+                fm._load_fontmanager(try_read_cache=False)
+            except:
+                pass
+            
+            # 使用 addfont 方法注册字体
             if hasattr(fm.fontManager, 'addfont'):
                 fm.fontManager.addfont(font_path)
+                print(f"✅ 字体已注册: {font_path}")
+            
+            # 创建 FontProperties
             chinese_font = fm.FontProperties(fname=font_path)
             
-            # 设置全局字体（兼容不同版本）
+            # 获取字体名称
             font_name = chinese_font.get_name()
+            print(f"✅ 字体名称: {font_name}")
+            
+            # 设置全局字体
             plt.rcParams['font.family'] = font_name
-            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
+            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans', 'Arial Unicode MS']
             plt.rcParams['axes.unicode_minus'] = False
+            
+            font_loaded = True
             break
-        except:
+        except Exception as e:
+            print(f"⚠️ 字体加载失败: {e}")
             continue
 
-if chinese_font is None:
+if not font_loaded:
+    print("⚠️ 未找到中文字体，使用默认字体")
     chinese_font = fm.FontProperties()
 
 def verify_duty_cycle():
