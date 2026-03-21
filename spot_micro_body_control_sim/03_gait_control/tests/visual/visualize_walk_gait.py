@@ -66,7 +66,7 @@ def setup_chinese_font():
                     pass
                 
                 if hasattr(fm.fontManager, 'addfont'):
-                    _safe_addfont(abs_path)
+                    fm.fontManager.addfont(abs_path)
                 
                 chinese_font = fm.FontProperties(fname=abs_path)
                 font_name = chinese_font.get_name()
@@ -314,9 +314,8 @@ def main():
     anim = FuncAnimation(fig, update, frames=total_frames, interval=50, blit=False)
     
     # 保存动画
-    # 保存动画到脚本所在目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_file = os.path.join(script_dir, 'walk_gait_animation.gif')
+    # 保存动画到当前工作目录
+    output_file = os.path.join(os.getcwd(), 'walk_gait_animation.gif')
     print(f"\n正在保存动画到: {output_file}")
     print("（这可能需要几秒钟...）")
     
