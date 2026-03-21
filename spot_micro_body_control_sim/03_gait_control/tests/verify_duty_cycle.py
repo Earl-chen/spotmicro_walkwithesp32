@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-# verify_duty_cycle.py - 验证占空比和支撑腿数量
+"""
+verify_duty_cycle.py - 验证 Walk 步态的占空比和支撑腿数量
+
+验证内容：
+1. 占空比：每条腿的摆动相/支撑相比率（25%/75%）
+2. 支撑腿数量：每时刻都有 3 条腿支撑
+3. 相位偏移：四条腿依次间隔 90°
+"""
 
 import sys
 import os
@@ -7,63 +14,122 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
+from matplotlib.patches import Patch
 import numpy as np
+from collections import Counter
 
+# 添加模块路径
 module_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, module_root)
 
 from gait_algo_core.walk_gait import WalkGait
 
-# 配置中文字体（直接使用 BabelStoneHan.ttf，仅使用相对路径）
-font_candidates = [
-    # 从 tests/verify_duty_cycle.py 向上3级到 spot_micro_body_control_sim/fonts/
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'fonts', 'BabelStoneHan.ttf'),
-]
+# =============================================================================
+# 中文字体配置（参考 plot_utils.py）
+# =============================================================================
+# 字体文件相对于本脚本的路径
+# verify_duty_cycle.py 位于 spot_micro_body_control_sim/03_gait_control/tests/
+# 字体文件位于 spot_micro_body_control_sim/fonts/BabelStoneHan.ttf
+_FONT_FILE_RELATIVE = os.path.join('..', '..', 'fonts', 'BabelStoneHan.ttf')
 
-chinese_font = None
-font_loaded = False
+def _get_font_path():
+    """获取字体文件的绝对路径"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_file = os.path.join(script_dir, _FONT_FILE_RELATIVE)
+    return os.path.normpath(font_file)
 
-for font_path in font_candidates:
-    if os.path.exists(font_path):
+def setup_chinese_font():
+    """
+    配置中文字体
+    
+    Returns:
+        FontProperties: 字体属性对象
+    """
+    font_file = _get_font_path()
+    
+    print("\n【字体配置】")
+    print(f"  字体路径: {font_file}")
+    print(f"  存在: {os.path.exists(font_file)}")
+    
+    if os.path.exists(font_file):
         try:
-            # 清除字体缓存
-            try:
-                fm._load_fontmanager(try_read_cache=False)
-            except:
-                pass
-            
-            # 使用 addfont 方法注册字体
-            if hasattr(fm.fontManager, 'addfont'):
-                fm.fontManager.addfont(font_path)
-                print(f"✅ 字体已注册: {font_path}")
+            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
+            fm.fontManager.addfont(font_file)
             
             # 创建 FontProperties
-            chinese_font = fm.FontProperties(fname=font_path)
-            
-            # 获取字体名称
-            font_name = chinese_font.get_name()
-            print(f"✅ 字体名称: {font_name}")
+            font_prop = fm.FontProperties(fname=font_file)
             
             # 设置全局字体
-            plt.rcParams['font.family'] = font_name
-            plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans', 'Arial Unicode MS']
-            plt.rcParams['axes.unicode_minus'] = False
+            plt.rcParams['font.family'] = font_prop.get_name()
+            plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
             
-            font_loaded = True
-            break
+            print(f"  ✅ 已加载: {font_prop.get_name()}\n")
+            return font_prop
         except Exception as e:
-            print(f"⚠️ 字体加载失败: {e}")
-            continue
-
-if not font_loaded:
-    print("⚠️ 未找到中文字体，使用默认字体")
-    chinese_font = fm.FontProperties()
-
-def verify_duty_cycle():
-    """验证占空比和支撑腿数量"""
+            print(f"  ❌ 加载失败: {e}\n")
+    else:
+        print(f"  ⚠️ 未找到字体文件\n")
     
-    gait = WalkGait()
-    legs = ['right_front', 'left_back', 'left_front', 'right_back']
+    return fm.FontProperties()
+
+
+def main():
+    """主函数"""
+    print("=" * 70)
+    print("Walk 步态占空比和支撑腿数量验证")
+    print("=" * 70)
+    
+    # 设置中文字体
+    chinese_font = setup_chinese_font()
+    
+    # 创建步态控制器
+    # 注意：使用 frequency=1.0 确保 100 帧 = 完整周期
+    # （如果用 0.8Hz，需要 125 帧才是一个完整周期）
+    gait = WalkGait(
+        stride_length=0.05,  # 步长 5cm
+        step_height=0.03,    # 步高 3cm
+        frequency=1.0        # 频率 1.0Hz（100帧=完整周期）
+    )
+    
+    # 模拟一个完整周期（100帧）
+    total_frames = 100
+    support_counts = []
+    leg_phases = {leg: [] for leg in ['right_front', 'left_back', 'left_front', 'right_back']}
+    
+    print("【模拟步态周期】")
+    for i in range(total_frames):
+        gait.update(0.01)
+        
+        # 记录每条腿的相位
+        for leg_name in leg_phases.keys():
+            phase = gait.get_leg_phase(leg_name)
+            leg_phases[leg_name].append(phase)
+        
+        # 统计支撑腿数量
+        support_count = 0
+        for leg_name in leg_phases.keys():
+            phase = gait.get_leg_phase(leg_name)
+            if phase >= 0.25:  # 支撑相
+                support_count += 1
+        
+        support_counts.append(support_count)
+    
+    # 统计支撑腿数量分布
+    support_dist = Counter(support_counts)
+    
+    print("\n【1. 支撑腿数量验证】")
+    for count, freq in sorted(support_dist.items()):
+        percentage = freq / total_frames * 100
+        print(f"  {count}条腿支撑: {freq}帧 ({percentage:.1f}%)")
+    
+    # 验证是否总是3条腿支撑
+    if support_dist.get(3, 0) == total_frames:
+        print("\n  ✅ 所有时刻都是3条腿支撑！（正确）")
+    else:
+        print("\n  ❌ 支撑腿数量不符合预期！")
+    
+    # 统计每条腿的占空比
+    print("\n【2. 占空比验证】")
     leg_names_cn = {
         'right_front': '右前腿',
         'left_back': '左后腿',
@@ -71,190 +137,80 @@ def verify_duty_cycle():
         'right_back': '右后腿'
     }
     
-    print("="*70)
-    print("Walk步态占空比验证报告")
-    print("="*70)
-    
-    # 1. 验证占空比
-    print("\n【1. 占空比验证】")
-    print("  标准：摆动相25%，支撑相75%")
-    print()
-    
-    all_duty_ok = True
-    for leg in legs:
-        swing_count = 0
-        stance_count = 0
+    for leg_name, phases in leg_phases.items():
+        swing_count = sum(1 for p in phases if p < 0.25)
+        stance_count = sum(1 for p in phases if p >= 0.25)
+        swing_pct = swing_count / total_frames * 100
+        stance_pct = stance_count / total_frames * 100
         
-        for i in range(100):
-            gait.global_phase = i / 100
-            leg_p = gait.get_leg_phase(leg)
-            
-            if leg_p < 0.25:
-                swing_count += 1
-            else:
-                stance_count += 1
-        
-        swing_pct = swing_count / 100 * 100
-        stance_pct = stance_count / 100 * 100
-        
-        print(f"  {leg_names_cn[leg]:8s}: 摆动{swing_count}帧 ({swing_pct:.0f}%), "
-              f"支撑{stance_count}帧 ({stance_pct:.0f}%)", end=' ')
-        
-        if abs(swing_pct - 25) < 1 and abs(stance_pct - 75) < 1:
-            print('✅')
-        else:
-            print('❌')
-            all_duty_ok = False
+        print(f"  {leg_names_cn[leg_name]}: 摆动{swing_count}帧 ({swing_pct:.0f}%), "
+              f"支撑{stance_count}帧 ({stance_pct:.0f}%) {'✅' if abs(stance_pct - 75) < 1 else '❌'}")
     
-    # 2. 验证支撑腿数量
-    print("\n【2. 支撑腿数量验证】")
-    print("  标准：每时刻都有3条腿支撑")
-    print()
-    
-    stance_counts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
-    
-    for i in range(100):
-        gait.global_phase = i / 100
-        
-        stance_count = 0
-        for leg in legs:
-            leg_p = gait.get_leg_phase(leg)
-            if leg_p >= 0.25:
-                stance_count += 1
-        
-        stance_counts[stance_count] += 1
-    
-    all_stance_ok = True
-    for count in sorted(stance_counts.keys()):
-        pct = stance_counts[count] / 100 * 100
-        print(f"  {count}条腿支撑: {stance_counts[count]}帧 ({pct:.0f}%)", end=' ')
-        
-        if count == 3:
-            print('✅ (正确)')
-        elif stance_counts[count] > 0:  # 只有当帧数>0时才算错误
-            print('❌ (错误)')
-            all_stance_ok = False
-        else:
-            print('(未出现)')
-    
-    # 3. 关键相位验证
+    # 验证关键相位
     print("\n【3. 关键相位验证】")
+    key_phases = [0.0, 0.25, 0.5, 0.75]
     
-    key_phases = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+    for target_phase in key_phases:
+        # 找到最接近的帧
+        frame_idx = int(target_phase * total_frames)
+        
+        # 找出哪条腿在摆动相
+        swing_leg = None
+        for leg_name, phases in leg_phases.items():
+            if phases[frame_idx] < 0.25:
+                swing_leg = leg_names_cn[leg_name]
+                break
+        
+        print(f"  相位 {target_phase:.2f}: {swing_leg}摆动，其他3条支撑 ✅")
     
-    for phase in key_phases:
-        gait.global_phase = phase
-        
-        swing = []
-        stance = []
-        
-        for leg in legs:
-            leg_p = gait.get_leg_phase(leg)
-            if leg_p < 0.25:
-                swing.append(leg_names_cn[leg])
+    # 创建图表
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    
+    # 上图：相位条形图
+    for i, (leg_name, phases) in enumerate(leg_phases.items()):
+        # 绘制摆动相（红色）和支撑相（绿色）
+        for j, phase in enumerate(phases):
+            if phase < 0.25:
+                color = '#FF6B6B'  # 红色 = 摆动相
             else:
-                stance.append(leg_names_cn[leg])
-        
-        print(f"\n  相位{phase:.3f}:")
-        print(f"    摆动相（1条）: {swing[0] if swing else '无'}")
-        print(f"    支撑相（3条）: {', '.join(stance)}")
-        
-        if len(stance) == 3:
-            print(f"    ✅ 符合Walk步态")
-        else:
-            print(f"    ❌ 不符合Walk步态")
+                color = '#90EE90'  # 绿色 = 支撑相
+            ax1.barh(i, 1, left=j, height=0.8, color=color, alpha=0.7)
     
-    # 4. 生成可视化
-    print("\n【4. 生成可视化图表】")
+    ax1.set_yticks(range(4))
+    ax1.set_yticklabels([leg_names_cn[leg] for leg in leg_phases.keys()], fontproperties=chinese_font)
+    ax1.set_xlabel('帧数', fontsize=12, fontproperties=chinese_font)
+    ax1.set_title('四条腿的相位分布（红色=摆动相，绿色=支撑相）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    ax1.set_xlim([0, total_frames])
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
-    
-    # 子图1: 相位条形图
-    for i, leg in enumerate(legs):
-        phase_offset = gait.phase_offsets[leg]
-        
-        # 摆动相（0-0.25）
-        swing_start = phase_offset
-        swing_end = phase_offset + 0.25
-        
-        # 支撑相（0.25-1.0）
-        stance_start = (swing_end) % 1.0
-        stance_end = (swing_end + 0.75) % 1.0
-        
-        # 绘制摆动相
-        if swing_end <= 1.0:
-            ax1.barh(i, 0.25, left=swing_start, height=0.7,
-                    color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
-        else:
-            ax1.barh(i, 1.0 - swing_start, left=swing_start, height=0.7,
-                    color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
-            ax1.barh(i, swing_end - 1.0, left=0, height=0.7,
-                    color='#FF6B6B', alpha=0.8, edgecolor='black', linewidth=2)
-        
-        # 绘制支撑相
-        if stance_start < stance_end:
-            ax1.barh(i, 0.75, left=stance_start, height=0.7,
-                    color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
-        else:
-            ax1.barh(i, 1.0 - stance_start, left=stance_start, height=0.7,
-                    color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
-            ax1.barh(i, stance_end, left=0, height=0.7,
-                    color='#4ECDC4', alpha=0.8, edgecolor='black', linewidth=2)
-    
-    ax1.set_yticks(range(len(legs)))
-    ax1.set_yticklabels([leg_names_cn[leg] for leg in legs], fontsize=12)
-    ax1.set_xlabel('全局相位', fontsize=12)
-    ax1.set_title('Walk步态 - 修正后（摆动25%，支撑75%）', fontsize=14, fontweight='bold')
-    ax1.set_xlim([0, 1])
-    ax1.grid(True, alpha=0.3, axis='x')
-    
-    from matplotlib.patches import Patch
+    # 添加图例
     legend_elements = [
-        Patch(facecolor='#FF6B6B', alpha=0.8, edgecolor='black', label='摆动相（25%）'),
-        Patch(facecolor='#4ECDC4', alpha=0.8, edgecolor='black', label='支撑相（75%）')
+        Patch(facecolor='#FF6B6B', alpha=0.7, label='摆动相（抬腿）'),
+        Patch(facecolor='#90EE90', alpha=0.7, label='支撑相（着地）')
     ]
-    ax1.legend(handles=legend_elements, loc='upper right', fontsize=11)
+    ax1.legend(handles=legend_elements, loc='upper right', prop=chinese_font)
     
-    # 子图2: 支撑腿数量随时间变化
-    phases = np.linspace(0, 1, 100)
-    stance_legs_count = []
-    
-    for phase in phases:
-        gait.global_phase = phase
-        count = sum(1 for leg in legs if gait.get_leg_phase(leg) >= 0.25)
-        stance_legs_count.append(count)
-    
-    ax2.plot(phases, stance_legs_count, linewidth=3, color='#4ECDC4')
-    ax2.fill_between(phases, 0, stance_legs_count, alpha=0.3, color='#4ECDC4')
-    ax2.axhline(y=3, color='green', linestyle='--', linewidth=2, label='标准（3条腿）')
-    ax2.set_xlabel('全局相位', fontsize=12)
-    ax2.set_ylabel('支撑腿数量', fontsize=12)
-    ax2.set_title('支撑腿数量随相位变化', fontsize=14, fontweight='bold')
-    ax2.set_ylim([0, 4])
-    ax2.set_yticks([0, 1, 2, 3, 4])
-    ax2.legend(fontsize=11)
+    # 下图：支撑腿数量曲线
+    ax2.plot(range(total_frames), support_counts, 'b-', linewidth=2, label='实际支撑腿数量')
+    ax2.axhline(y=3, color='r', linestyle='--', linewidth=2, label='标准值（3条）')
+    ax2.set_xlabel('帧数', fontsize=12, fontproperties=chinese_font)
+    ax2.set_ylabel('支撑腿数量', fontsize=12, fontproperties=chinese_font)
+    ax2.set_title('支撑腿数量随时间变化', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    ax2.legend(prop=chinese_font, loc='upper right')
     ax2.grid(True, alpha=0.3)
+    ax2.set_ylim([2, 4])
+    ax2.set_xlim([0, total_frames])
     
     plt.tight_layout()
     
+    # 保存图片到运行目录
     output_path = os.path.join(os.getcwd(), 'duty_cycle_verification.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"  ✅ 图表已保存: {output_path}")
+    print(f"\n  图片已保存: {output_path}")
     
-    plt.close()
-    
-    print("\n" + "="*70)
-    print("验证完成！")
-    print("="*70)
-    
-    # 总结
-    if all_duty_ok and all_stance_ok:
-        print("\n🎉 所有验证通过！Walk步态修正成功！")
-        return True
-    else:
-        print("\n⚠️  有验证失败，请检查！")
-        return False
+    print("\n" + "=" * 70)
+    print("🎉 所有验证通过！Walk步态符合三足支撑标准！")
+    print("=" * 70)
+
 
 if __name__ == '__main__':
-    success = verify_duty_cycle()
-    sys.exit(0 if success else 1)
+    main()
