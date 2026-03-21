@@ -15,46 +15,15 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
 from matplotlib import font_manager as fm
 
-# =============================================================================
-# 中文字体配置
-# =============================================================================
-_FONT_FILE_RELATIVE = os.path.join('..', '..', '..', 'fonts', 'BabelStoneHan.ttf')
-
-def _get_font_path():
-    """获取字体文件的绝对路径"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    font_file = os.path.join(script_dir, _FONT_FILE_RELATIVE)
-    return os.path.normpath(font_file)
-
-def setup_chinese_font():
-    """配置中文字体"""
-    font_file = _get_font_path()
-    
-    if os.path.exists(font_file):
-        try:
-            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
-            _safe_addfont(font_file)
-            
-            # 创建 FontProperties
-            font_prop = fm.FontProperties(fname=font_file)
-            
-            # 设置全局字体
-            plt.rcParams['font.family'] = font_prop.get_name()
-            plt.rcParams['axes.unicode_minus'] = False
-            
-            return font_prop
-        except Exception as e:
-            print(f"⚠️ 字体加载失败: {e}")
-    
-    return fm.FontProperties()
-
-# 配置中文字体
-chinese_font = setup_chinese_font()
-print(f"✅ 已加载中文字体: {chinese_font.get_name()}")
-
+# 导入通用中文字体配置模块
 module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, module_root)
 from gait_algo_core.walk_gait import WalkGait
+sys.path.insert(0, os.path.join(module_root, 'tests'))
+from chinese_font_config import setup_chinese_font
+
+# 配置中文字体
+chinese_font = setup_chinese_font()
 
 def generate_steering_comparison():
     """生成转向对比图"""
