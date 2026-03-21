@@ -42,46 +42,9 @@ module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__
 sys.path.insert(0, module_root)
 from gait_algo_core.walk_gait import WalkGait
 
-# 配置中文字体
-def setup_chinese_font():
-    # 获取脚本所在目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    font_candidates = [
-        # 向上3级到 spot_micro_body_control_sim/fonts/
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(script_dir))),
-            'fonts',
-            'BabelStoneHan.ttf'
-        ),
-    ]
-    
-    for font_path in font_candidates:
-        abs_path = os.path.abspath(font_path)
-        if os.path.exists(abs_path):
-            try:
-                try:
-                    fm._load_fontmanager(try_read_cache=False)
-                except:
-                    pass
-                
-                if hasattr(fm.fontManager, 'addfont'):
-                    fm.fontManager.addfont(abs_path)
-                
-                chinese_font = fm.FontProperties(fname=abs_path)
-                font_name = chinese_font.get_name()
-                
-                plt.rcParams['font.family'] = font_name
-                plt.rcParams['font.sans-serif'] = [font_name, 'DejaVu Sans']
-                plt.rcParams['axes.unicode_minus'] = False
-                
-                print(f"✅ 已加载中文字体: {font_name}")
-                return chinese_font
-            except Exception as e:
-                print(f"⚠️ 加载字体失败: {e}")
-    
-    print("⚠️ 使用默认字体")
-    return fm.FontProperties()
+# 导入通用中文字体配置模块
+sys.path.insert(0, os.path.join(module_root, 'tests'))
+from chinese_font_config import setup_chinese_font
 
 def build_system():
     """构建机器人系统（从 simulator_app）"""
