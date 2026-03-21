@@ -7,6 +7,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 import numpy as np
 
 # 添加项目根目录到 Python 路径
@@ -183,39 +185,146 @@ def verify_trajectory():
     print(f"  chinese_font 对象: {chinese_font}")
     print(f"  chinese_font.get_name(): {chinese_font.get_name()}")
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
     
-    # 子图1: X和Z随相位变化
-    ax1.plot(phases, x_values, label='X偏移（前后）', linewidth=2, color='blue')
-    ax1.plot(phases, z_values, label='Z偏移（上下）', linewidth=2, color='red')
+    # ========== 子图1: X偏移随相位变化 ==========
+    # 绘制曲线
+    line_x = ax1.plot(phases, x_values, linewidth=2.5, color='blue', label='X偏移')[0]
     ax1.axhline(y=0, color='k', linestyle='--', alpha=0.3)
-    ax1.axvline(x=0.5, color='gray', linestyle=':', alpha=0.5, label='摆动相/支撑相分界')
-    ax1.set_xlabel('相位', fontsize=12, fontproperties=chinese_font)
-    ax1.set_ylabel('偏移量 (cm)', fontsize=12, fontproperties=chinese_font)
-    ax1.set_title('足端轨迹随相位变化（修正后）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
-    ax1.legend(fontsize=10, prop=chinese_font)
-    ax1.grid(True, alpha=0.3)
     
-    # 子图2: 2D轨迹
-    ax2.plot(x_values, z_values, linewidth=2, color='green')
-    ax2.scatter(x_values[0], z_values[0], color='green', s=150, marker='o', 
-                edgecolors='black', linewidths=2, label='起点（相位0）', zorder=5)
-    ax2.scatter(x_values[25], z_values[25], color='red', s=150, marker='^', 
-                edgecolors='black', linewidths=2, label='最高点（相位0.25）', zorder=5)
-    ax2.scatter(x_values[50], z_values[50], color='blue', s=150, marker='s', 
-                edgecolors='black', linewidths=2, label='着地点（相位0.5）', zorder=5)
+    # 添加半透明区域（添加label用于图例）
+    swing_patch = ax1.axvspan(0, 0.25, alpha=0.15, color='#FF6B6B', label='摆动相（抬腿）')
+    stance_patch = ax1.axvspan(0.25, 1.0, alpha=0.15, color='#90EE90', label='支撑相（着地）')
+    
+    # 添加关键点标记（圆球）
+    ax1.scatter([0, 0.25], [x_values[0], x_values[25]], 
+               color=['green', 'blue'], s=150, marker='o',
+               zorder=5, edgecolors='black', linewidths=2)
+    
+    # 添加关键点标注（直接在曲线上）
+    ax1.text(0.03, x_values[3] - 0.3, '脚在后\nX = -2cm', fontsize=9, fontproperties=chinese_font,
+            ha='left', va='top', color='green',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+    
+    ax1.text(0.28, 1.5, '脚在前\nX = +2cm', fontsize=9, fontproperties=chinese_font,
+            ha='left', va='bottom', color='blue',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+    
+    ax1.set_xlabel('相位（单腿步态周期 0→1）', fontsize=12, fontproperties=chinese_font)
+    ax1.set_ylabel('X偏移 - 前后 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax1.set_title('X偏移：前后移动', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    
+    # 右上角图例
+    legend_elements = [
+        Patch(facecolor='#FF6B6B', alpha=0.3, edgecolor='#FF6B6B', label='摆动相（抬腿）'),
+        Patch(facecolor='#90EE90', alpha=0.3, edgecolor='#90EE90', label='支撑相（着地）'),
+    ]
+    ax1.legend(handles=legend_elements, fontsize=10, prop=chinese_font, loc='upper right')
+    
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim([0, 1])
+    ax1.set_ylim([-2.5, 2.5])
+    
+    # 添加Y轴说明（更具体的描述）
+    ax1.text(0.5, 2.3, '← 身体后方（X负）| 身体前方（X正）→', fontsize=10, fontproperties=chinese_font,
+            ha='center', va='bottom', color='gray')
+    
+    # ========== 子图2: Z偏移随相位变化 ==========
+    # 绘制曲线
+    ax2.plot(phases, z_values, linewidth=2.5, color='red', label='Z偏移')
     ax2.axhline(y=0, color='k', linestyle='--', alpha=0.3)
-    ax2.axvline(x=0, color='k', linestyle='--', alpha=0.3)
-    ax2.set_xlabel('X偏移 (cm)', fontsize=12, fontproperties=chinese_font)
-    ax2.set_ylabel('Z偏移 (cm)', fontsize=12, fontproperties=chinese_font)
-    ax2.set_title('足端2D轨迹（修正后）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
-    ax2.legend(fontsize=10, prop=chinese_font)
+    
+    # 添加半透明区域（添加label用于图例）
+    ax2.axvspan(0, 0.25, alpha=0.15, color='#FF6B6B', label='摆动相（抬腿）')
+    ax2.axvspan(0.25, 1.0, alpha=0.15, color='#90EE90', label='支撑相（着地）')
+    
+    # 添加关键点标记（三角形标记最高点）
+    ax2.scatter([0.24], [z_values[24]], color='red', s=150, marker='^', 
+               zorder=5, edgecolors='black', linewidths=2)
+    
+    # 标注最高点（直接在曲线上，不用箭头）
+    ax2.text(0.28, z_values[24] + 0.2, '最高点\n脚在正下方\nZ = +2.5cm', fontsize=9, fontproperties=chinese_font,
+            ha='left', va='bottom', color='red',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+    
+    # 标注着地点（直接在曲线上，不用箭头）
+    ax2.text(0.30, 0.4, '着地\n高度为0\nZ = 0cm', fontsize=9, fontproperties=chinese_font,
+            ha='left', va='bottom', color='green',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+    
+    ax2.set_xlabel('相位（单腿步态周期 0→1）', fontsize=12, fontproperties=chinese_font)
+    ax2.set_ylabel('Z偏移 - 上下 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax2.set_title('Z偏移：上下移动', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    
+    # 右上角图例
+    legend_elements = [
+        Patch(facecolor='#FF6B6B', alpha=0.3, edgecolor='#FF6B6B', label='摆动相（抬腿）'),
+        Patch(facecolor='#90EE90', alpha=0.3, edgecolor='#90EE90', label='支撑相（着地）'),
+        Line2D([0], [0], marker='^', color='w', markerfacecolor='red', markersize=10, markeredgecolor='black', label='最高点')
+    ]
+    ax2.legend(handles=legend_elements, fontsize=10, prop=chinese_font, loc='upper right')
+    
     ax2.grid(True, alpha=0.3)
-    ax2.axis('equal')
+    ax2.set_xlim([0, 1])
+    ax2.set_ylim([-0.5, 3.5])
+    
+    # 添加Y轴说明（更具体的描述）
+    ax2.text(0.5, 3.3, '← 地面（Z=0）| 抬起（Z>0）→', fontsize=10, fontproperties=chinese_font,
+            ha='center', va='bottom', color='gray')
+    
+    # ========== 子图3: 2D轨迹 ==========
+    ax3.plot(x_values, z_values, linewidth=2, color='green')
+    
+    # 标记起点（相位0）
+    ax3.scatter(x_values[0], z_values[0], color='green', s=150, marker='o', 
+                edgecolors='black', linewidths=2, label='起点（相位0）', zorder=5)
+    
+    # 标记最高点（相位0.242，索引24）
+    ax3.scatter(x_values[24], z_values[24], color='red', s=150, marker='^', 
+                edgecolors='black', linewidths=2, label='最高点（相位0.242）', zorder=5)
+    
+    # 标记着地点（相位0.25，索引25）
+    ax3.scatter(x_values[25], z_values[25], color='blue', s=150, marker='s', 
+                edgecolors='black', linewidths=2, label='着地点（相位0.25）', zorder=5)
+    
+    ax3.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax3.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+    
+    # 添加坐标轴说明（和左图保持一致）
+    ax3.annotate('', xy=(1.8, -0.8), xytext=(-1.8, -0.8),
+                arrowprops=dict(arrowstyle='->', color='gray', lw=1.5))
+    ax3.text(0, -1.2, '← 身体后方（X负）| 身体前方（X正）→', fontsize=10, fontproperties=chinese_font,
+            ha='center', va='top', color='gray')
+    
+    # 添加运动方向箭头
+    ax3.annotate('', xy=(0, 2.0), xytext=(-1.5, 0.5),
+                arrowprops=dict(arrowstyle='->', color='darkgreen', lw=2))
+    ax3.text(-0.8, 1.3, '摆动方向', fontsize=9, fontproperties=chinese_font,
+            ha='center', va='bottom', color='darkgreen', rotation=45)
+    
+    # 添加关键点文字说明
+    ax3.text(-2.0, 0.5, '脚在\n身体后', fontsize=8, fontproperties=chinese_font,
+            ha='center', va='bottom', color='green',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='lightgreen', alpha=0.7))
+    ax3.text(0, 2.8, '脚在身体\n正下方', fontsize=8, fontproperties=chinese_font,
+            ha='center', va='bottom', color='red',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='lightyellow', alpha=0.7))
+    ax3.text(2.0, 0.5, '脚在\n身体前', fontsize=8, fontproperties=chinese_font,
+            ha='center', va='bottom', color='blue',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='lightblue', alpha=0.7))
+    
+    ax3.set_xlabel('X偏移 - 前后 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax3.set_ylabel('Z偏移 - 上下 (cm)', fontsize=12, fontproperties=chinese_font)
+    ax3.set_title('单腿足端2D轨迹（X-Z平面）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
+    ax3.legend(fontsize=10, prop=chinese_font, loc='upper right')
+    ax3.grid(True, alpha=0.3)
+    ax3.axis('equal')
+    ax3.set_xlim([-2.5, 2.5])
+    ax3.set_ylim([-1.5, 3.5])
     
     plt.tight_layout()
     
-    output_path = os.path.join(os.getcwd(), 'trajectory_verification.png')
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trajectory_verification.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"\n✅ 验证图表已保存: {output_path}")
     
