@@ -151,44 +151,127 @@ ax3.legend()
 ax3.grid(True, alpha=0.3)
 ax3.axis('equal')
 
-# 子图4: 单腿详细轨迹（右前腿）
+# 子图4: 单腿详细轨迹（右前腿）- 改进版：添加箭头和关键点标注
 ax4 = axes[1, 1]
 leg = 'right_front'
 
-swing_x = []
-swing_z = []
-stance_x = []
-stance_z = []
+# 收集所有轨迹点（按相位顺序）
+all_x = []
+all_z = []
 
 for phase in phases:
     gait.global_phase = phase
     leg_phase = gait.get_leg_phase(leg)
     x, y, z = TrajectoryGenerator.cycloid_trajectory(leg_phase, 0.04, 0.025)
-    
-    if leg_phase < 0.25:
-        swing_x.append(x * 100)
-        swing_z.append(z * 100)
-    else:
-        stance_x.append(x * 100)
-        stance_z.append(z * 100)
+    all_x.append(x * 100)
+    all_z.append(z * 100)
 
-# 绘制摆动相
-ax4.plot(swing_x, swing_z, color='red', linewidth=3, 
-        label='摆动相（25%）', alpha=0.8)
-ax4.scatter(swing_x[0], swing_z[0], color='green', s=150, 
-           marker='o', edgecolors='black', linewidths=2, 
-           label='起点', zorder=5)
+# 找到摆动相结束索引（相位>=0.25的第一个点）
+swing_end_idx = 0
+for i in range(len(phases)):
+    if phases[i] >= 0.25:
+        swing_end_idx = i
+        break
 
-# 绘制支撑相
-ax4.plot(stance_x, stance_z, color='blue', linewidth=3, 
-        label='支撑相（75%）', alpha=0.8)
+# 绘制摆动相（红色）- 带箭头
+# 找到最高点索引
+max_z_idx = all_z.index(max(all_z))
+
+for i in range(swing_end_idx):
+    ax4.plot([all_x[i], all_x[i+1]], [all_z[i], all_z[i+1]], 
+            color='red', linewidth=3, alpha=0.8)
+    # 每隔4个点添加一个箭头，确保最后几段也有箭头
+    if (i % 4 == 0 or i >= swing_end_idx - 3) and i < swing_end_idx - 1:
+        ax4.annotate('', xy=(all_x[i+1], all_z[i+1]), xytext=(all_x[i], all_z[i]),
+                    arrowprops=dict(arrowstyle='->', color='red', lw=2))
+
+# 绘制支撑相（蓝色）- 带箭头
+for i in range(swing_end_idx, len(all_x) - 1):
+    ax4.plot([all_x[i], all_x[i+1]], [all_z[i], all_z[i+1]], 
+            color='blue', linewidth=3, alpha=0.8)
+    # 每隔10个点添加一个箭头
+    if (i - swing_end_idx) % 10 == 0:
+        dx = all_x[i+1] - all_x[i]
+        dz = all_z[i+1] - all_z[i]
+        ax4.annotate('', xy=(all_x[i+1], all_z[i+1]), xytext=(all_x[i], all_z[i]),
+                    arrowprops=dict(arrowstyle='->', color='blue', lw=2))
+
+# 从最后一点（支撑相）回到起点
+ax4.plot([all_x[-1], all_x[0]], [all_z[-1], all_z[0]], 
+        color='blue', linewidth=3, alpha=0.8)
+
+# 标记关键点（用不同颜色和形状）
+# 起点（绿色圆球）
+ax4.scatter(all_x[0], all_z[0], s=200, color='green', 
+           edgecolors='black', linewidths=2, zorder=10)
+ax4.text(all_x[0]-0.3, all_z[0]+0.5, '起点\n相位0.00', fontsize=9, 
+        ha='center', fontproperties=chinese_font,
+        bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8))
+
+# 最高点（红色圆球）
+ax4.scatter(all_x[max_z_idx], all_z[max_z_idx], s=200, color='red', 
+           edgecolors='black', linewidths=2, zorder=10)
+ax4.text(all_x[max_z_idx], all_z[max_z_idx]+0.5, '最高点\n相位0.12', fontsize=9, 
+        ha='center', fontproperties=chinese_font,
+        bbox=dict(boxstyle='round', facecolor='lightcoral', alpha=0.8))
+
+# 着地点（紫色方块）
+ax4.scatter(all_x[swing_end_idx], all_z[swing_end_idx], s=200, color='purple', 
+           marker='s', edgecolors='black', linewidths=2, zorder=10)
+ax4.text(all_x[swing_end_idx]+0.3, all_z[swing_end_idx]+0.5, '着地点\n相位0.25', fontsize=9, 
+        ha='center', fontproperties=chinese_font,
+        bbox=dict(boxstyle='round', facecolor='plum', alpha=0.8))
+
+# 中点（橙色三角形）
+ax4.scatter(all_x[50], all_z[50], s=200, color='orange', 
+           marker='^', edgecolors='black', linewidths=2, zorder=10)
+ax4.text(all_x[50], all_z[50]-0.5, '中点\n0.50', fontsize=8, 
+        ha='center', fontproperties=chinese_font)
+
+# 后段（青色菱形）
+ax4.scatter(all_x[75], all_z[75], s=200, color='cyan', 
+           marker='D', edgecolors='black', linewidths=2, zorder=10)
+ax4.text(all_x[75], all_z[75]-0.5, '后段\n0.75', fontsize=8, 
+        ha='center', fontproperties=chinese_font)
+
+# 添加文字说明（不使用 emoji）
+ax4.text(-1.5, 2.8, '摆动相：抬腿向前', fontsize=10, 
+        color='red', fontweight='bold', fontproperties=chinese_font,
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+ax4.text(-1.5, -0.5, '支撑相：着地向后', fontsize=10, 
+        color='blue', fontweight='bold', fontproperties=chinese_font,
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+# 添加机器人前进方向箭头
+ax4.annotate('', xy=(2.5, 0), xytext=(1.5, 0),
+            arrowprops=dict(arrowstyle='->', color='green', lw=3))
+ax4.text(2.0, 0.4, '前进方向', fontsize=10, ha='center', 
+        color='green', fontweight='bold', fontproperties=chinese_font)
+
+# 添加图例（右上角）
+from matplotlib.lines import Line2D
+legend_elements = [
+    Line2D([0], [0], color='red', linewidth=3, label='摆动相（抬腿）'),
+    Line2D([0], [0], color='blue', linewidth=3, label='支撑相（着地）'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='green', 
+           markersize=10, markeredgecolor='black', label='起点 (0.00)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='red', 
+           markersize=10, markeredgecolor='black', label='最高点 (0.12)'),
+    Line2D([0], [0], marker='s', color='w', markerfacecolor='purple', 
+           markersize=10, markeredgecolor='black', label='着地点 (0.25)'),
+    Line2D([0], [0], marker='^', color='w', markerfacecolor='orange', 
+           markersize=10, markeredgecolor='black', label='中点 (0.50)'),
+    Line2D([0], [0], marker='D', color='w', markerfacecolor='cyan', 
+           markersize=10, markeredgecolor='black', label='后段 (0.75)'),
+]
+ax4.legend(handles=legend_elements, loc='upper right', fontsize=8, 
+          prop=chinese_font, framealpha=0.9)
 
 ax4.axhline(y=0, color='k', linestyle='--', alpha=0.3)
 ax4.axvline(x=0, color='k', linestyle='--', alpha=0.3)
-ax4.set_xlabel('X偏移 (cm)', fontsize=11)
-ax4.set_ylabel('Z偏移 (cm)', fontsize=11)
-ax4.set_title('右前腿详细轨迹（修正后）', fontsize=12, fontweight='bold')
-ax4.legend()
+ax4.set_xlabel('X偏移 (cm)', fontsize=11, fontproperties=chinese_font)
+ax4.set_ylabel('Z偏移 (cm)', fontsize=11, fontproperties=chinese_font)
+ax4.set_title('右前腿详细轨迹（修正后）', fontsize=12, fontweight='bold', fontproperties=chinese_font)
 ax4.grid(True, alpha=0.3)
 ax4.axis('equal')
 

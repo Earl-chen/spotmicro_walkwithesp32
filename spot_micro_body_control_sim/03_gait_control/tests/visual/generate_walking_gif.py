@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-四足机器人行走动画生成器
+四足机器人行走动画生成器（高质量版）
 
-生成带转向功能的行走 GIF 动画
+生成双视图 GIF 动画：
+- 左图：俯视图（身体 + 四条腿 + 轨迹线）
+- 右图：Z 轴高度随时间变化曲线
+
+适配当前 WalkGait API（2026-03-21 更新）
 """
 
 import sys
@@ -13,46 +17,89 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle, Circle
-import matplotlib.font_manager as fm
+from matplotlib import font_manager as fm
 
 module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, module_root)
 from gait_algo_core.walk_gait import WalkGait
 
-# 配置字体（优先使用系统中文字体）
-font_list = [f.name for f in fm.fontManager.ttflist]
-chinese_fonts = [f for f in font_list if any(k in f.lower() for k in ['noto', 'cjk', 'simhei', 'wqy', 'droid'])]
+# =============================================================================
+# 中文字体配置
+# =============================================================================
+_FONT_FILE_RELATIVE = os.path.join('..', '..', '..', 'fonts', 'BabelStoneHan.ttf')
 
-if chinese_fonts:
-    plt.rcParams['font.sans-serif'] = chinese_fonts + ['DejaVu Sans']
-    print(f"使用中文字体: {chinese_fonts[0]}")
-else:
-    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Liberation Sans']
-    print("使用英文标签")
+def _get_font_path():
+    """获取字体文件的绝对路径"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_file = os.path.join(script_dir, _FONT_FILE_RELATIVE)
+    return os.path.normpath(font_file)
 
-plt.rcParams['axes.unicode_minus'] = False
+def setup_chinese_font():
+    """配置中文字体"""
+    font_file = _get_font_path()
+    
+    if os.path.exists(font_file):
+        try:
+            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
+            fm.fontManager.addfont(font_file)
+            
+            # 创建 FontProperties
+            font_prop = fm.FontProperties(fname=font_file)
+            
+            # 设置全局字体
+            plt.rcParams['font.family'] = font_prop.get_name()
+            plt.rcParams['axes.unicode_minus'] = False
+            
+            return font_prop
+        except Exception as e:
+            print(f"⚠️ 字体加载失败: {e}")
+    
+    return fm.FontProperties()
+
+# 配置中文字体
+chinese_font = setup_chinese_font()
 
 
-def create_walking_animation(steering_angle=0.0, output_file=None):
+def count_support_legs(gait, leg_names):
+    """
+    统计当前支撑腿数量
+    
+    Args:
+        gait: WalkGait 实例
+        leg_names: 腿名称列表
+    
+    Returns:
+        int: 支撑腿数量
+    """
+    count = 0
+    for leg_name in leg_names:
+        phase = gait.get_leg_phase(leg_name)
+        if phase >= 0.25:  # 支撑相
+            count += 1
+    return count
+
+
+def create_walking_animation(output_file=None):
     """
     创建行走动画
     
     Args:
-        steering_angle: 转向角度（弧度）
         output_file: 输出文件名
     """
     # 默认输出到脚本所在目录
     if output_file is None:
         output_file = os.path.join(os.getcwd(), 'walking_animation.gif')
     
-    print(f"\n生成行走动画（转向角度={steering_angle*180/np.pi:.1f}°）...")
+    print("生成行走动画...")
     
     # 创建步态控制器
-    gait = WalkGait(stride_length=0.05, step_height=0.03, frequency=0.8)
-    gait.set_direction(steering_angle)
+    gait = WalkGait(stride_length=0.05, step_height=0.03, frequency=1.0)
     
     dt = 0.02
-    frames = 150  # 3秒动画
+    frames = 100  # 2秒动画
+    
+    # 腿名称
+    leg_names = ['right_front', 'left_back', 'left_front', 'right_back']
     
     # 创建图形
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
@@ -62,18 +109,9 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
     ax1.set_ylim(-150, 150)
     ax1.set_aspect('equal')
     ax1.grid(True, alpha=0.3, linestyle='--')
-    ax1.set_xlabel('X (mm)', fontsize=12)
-    ax1.set_ylabel('Y (mm)', fontsize=12)
-    
-    # 标题（根据转向角度）
-    if abs(steering_angle) < 0.01:
-        title1 = 'Walk Gait - Straight (0°)'
-    elif steering_angle > 0:
-        title1 = f'Walk Gait - Left Turn (+{steering_angle*180/np.pi:.0f}°)'
-    else:
-        title1 = f'Walk Gait - Right Turn ({steering_angle*180/np.pi:.0f}°)'
-    
-    ax1.set_title(title1, fontsize=14, fontweight='bold')
+    ax1.set_xlabel('X 轴 (mm)', fontsize=12, fontproperties=chinese_font)
+    ax1.set_ylabel('Y 轴 (mm)', fontsize=12, fontproperties=chinese_font)
+    ax1.set_title('Walk 步态 - 俯视图', fontsize=14, fontweight='bold', fontproperties=chinese_font)
     
     # 机器人身体
     body_width = 78
@@ -88,35 +126,36 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
     center = Circle((0, 0), 5, color='red', zorder=10)
     ax1.add_patch(center)
     
-    # 腿部初始位置
+    # 腿部基础位置（X, Y）
     leg_base_positions = {
-        'LF': (body_length/2, body_width/2),
-        'RF': (body_length/2, -body_width/2),
-        'LB': (-body_length/2, body_width/2),
-        'RB': (-body_length/2, -body_width/2)
+        'right_front': (body_length/2, -body_width/2),   # 右前
+        'left_back': (-body_length/2, body_width/2),     # 左后
+        'left_front': (body_length/2, body_width/2),     # 左前
+        'right_back': (-body_length/2, -body_width/2),   # 右后
     }
     
     leg_colors = {
-        'LF': '#FF6B6B',
-        'RF': '#4ECDC4',
-        'LB': '#45B7D1',
-        'RB': '#FFA07A'
+        'right_front': '#4ECDC4',   # 青色
+        'left_back': '#45B7D1',     # 蓝色
+        'left_front': '#FF6B6B',    # 红色
+        'right_back': '#FFA07A'     # 橙色
     }
     
     leg_labels = {
-        'LF': 'Left Front',
-        'RF': 'Right Front',
-        'LB': 'Left Back',
-        'RB': 'Right Back'
+        'right_front': '右前腿',
+        'left_back': '左后腿',
+        'left_front': '左前腿',
+        'right_back': '右后腿'
     }
     
     # 初始化腿部绘图元素
     leg_points = {}
     leg_trails = {}
     
-    for leg_name, (x, y) in leg_base_positions.items():
+    for leg_name in leg_names:
+        base_x, base_y = leg_base_positions[leg_name]
         # 当前位置点
-        point, = ax1.plot(x, y, 'o', color=leg_colors[leg_name],
+        point, = ax1.plot(base_x, base_y, 'o', color=leg_colors[leg_name],
                          markersize=18, label=leg_labels[leg_name],
                          markeredgecolor='black', markeredgewidth=2)
         leg_points[leg_name] = point
@@ -126,27 +165,27 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
                          alpha=0.3, linewidth=2)
         leg_trails[leg_name] = trail
     
-    ax1.legend(loc='upper left', fontsize=10, framealpha=0.9)
+    ax1.legend(loc='upper left', fontsize=10, framealpha=0.9, prop=chinese_font)
     
-    # === 右图：轨迹曲线 ===
+    # === 右图：Z 轴高度曲线 ===
     ax2.set_xlim(0, frames * dt)
-    ax2.set_ylim(-50, 50)
+    ax2.set_ylim(-5, 35)
     ax2.grid(True, alpha=0.3, linestyle='--')
-    ax2.set_xlabel('Time (s)', fontsize=12)
-    ax2.set_ylabel('Y Offset (mm)', fontsize=12)
-    ax2.set_title('Lateral Trajectory (Y-axis)', fontsize=14, fontweight='bold')
+    ax2.set_xlabel('时间 (s)', fontsize=12, fontproperties=chinese_font)
+    ax2.set_ylabel('Z 轴高度 (mm)', fontsize=12, fontproperties=chinese_font)
+    ax2.set_title('垂直轨迹（Z 轴）', fontsize=14, fontweight='bold', fontproperties=chinese_font)
     
     # 初始化轨迹曲线
     trajectory_lines = {}
     time_data = []
-    y_data = {leg: [] for leg in leg_base_positions.keys()}
+    z_data = {leg: [] for leg in leg_names}
     
-    for leg_name in leg_base_positions.keys():
+    for leg_name in leg_names:
         line, = ax2.plot([], [], '-', color=leg_colors[leg_name],
                         linewidth=2, label=leg_labels[leg_name])
         trajectory_lines[leg_name] = line
     
-    ax2.legend(loc='upper left', fontsize=10, framealpha=0.9)
+    ax2.legend(loc='upper left', fontsize=10, framealpha=0.9, prop=chinese_font)
     
     # 文本显示
     info_text = ax1.text(0.02, 0.98, '', transform=ax1.transAxes,
@@ -155,7 +194,7 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
     
     def init():
         """初始化函数"""
-        for leg_name in leg_base_positions.keys():
+        for leg_name in leg_names:
             leg_points[leg_name].set_data([], [])
             leg_trails[leg_name].set_data([], [])
             trajectory_lines[leg_name].set_data([], [])
@@ -164,11 +203,11 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
                list(trajectory_lines.values()) + [info_text]
     
     # 存储历史轨迹
-    trail_history = {leg: {'x': [], 'y': []} for leg in leg_base_positions.keys()}
+    trail_history = {leg: {'x': [], 'y': []} for leg in leg_names}
     
     def update(frame):
         """更新函数"""
-        nonlocal time_data, y_data, trail_history
+        nonlocal time_data, z_data, trail_history
         
         # 更新步态
         gait.update(dt)
@@ -177,13 +216,15 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
         time_data.append(current_time)
         
         # 更新每条腿
-        for leg_name, (base_x, base_y) in leg_base_positions.items():
-            # 获取轨迹点
-            point = gait.get_foot_trajectory(leg_name)
+        for leg_name in leg_names:
+            base_x, base_y = leg_base_positions[leg_name]
+            
+            # 获取轨迹点（返回 x, z tuple）
+            x_offset, z_offset = gait.get_foot_trajectory(leg_name)
             
             # 计算新位置（基准 + 偏移）
-            new_x = base_x + point.x * 1000
-            new_y = base_y + point.y * 1000
+            new_x = base_x + x_offset * 1000  # X 轴偏移
+            new_y = base_y  # Y 轴不变（无侧向偏移）
             
             # 更新位置点
             leg_points[leg_name].set_data([new_x], [new_y])
@@ -201,24 +242,22 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
             leg_trails[leg_name].set_data(trail_history[leg_name]['x'],
                                          trail_history[leg_name]['y'])
             
-            # 更新Y轴轨迹曲线
-            y_data[leg_name].append(point.y * 1000)
-            trajectory_lines[leg_name].set_data(time_data, y_data[leg_name])
+            # 更新Z轴轨迹曲线
+            z_data[leg_name].append(z_offset * 1000)
+            trajectory_lines[leg_name].set_data(time_data, z_data[leg_name])
         
         # 更新信息文本
-        state = gait.get_state()
-        phase = gait.get_global_phase()
-        support_legs = gait.count_support_legs()
+        phase = gait.global_phase  # 使用属性
+        support_legs = count_support_legs(gait, leg_names)
         
-        info = f'Phase: {phase:.2f}\n'
-        info += f'Support Legs: {support_legs}/4\n'
-        info += f'Steering: {steering_angle*180/np.pi:+.1f}°'
+        info = f'相位: {phase:.2f}\n'
+        info += f'支撑腿: {support_legs}/4'
         
         info_text.set_text(info)
         
         # 动态调整X轴范围
-        if current_time > 2.5:
-            ax2.set_xlim(current_time - 2.5, current_time + 0.5)
+        if current_time > 1.5:
+            ax2.set_xlim(current_time - 1.5, current_time + 0.5)
         
         return list(leg_points.values()) + list(leg_trails.values()) + \
                list(trajectory_lines.values()) + [info_text]
@@ -239,43 +278,25 @@ def create_walking_animation(steering_angle=0.0, output_file=None):
 
 def main():
     """主函数"""
-    print("="*60)
+    print("=" * 60)
     print("四足机器人行走动画生成器")
-    print("="*60)
+    print("=" * 60)
     
     # 确保输出目录存在
-    output_dir = 'tests/visual'
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = os.path.dirname(os.path.abspath(__file__))
+    output_file = os.path.join(output_dir, 'walk_hq.gif')
     
-    # 生成三种模式的动画
-    animations = []
+    # 生成动画
+    create_walking_animation(output_file)
     
-    # 1. 直行
-    print("\n【1/3】生成直行动画...")
-    file1 = create_walking_animation(0.0, f'{output_dir}/walk_straight.gif')
-    animations.append(file1)
+    print("\n" + "=" * 60)
+    print("✅ 动画生成完成！")
+    print("=" * 60)
     
-    # 2. 左转
-    print("\n【2/3】生成左转动画...")
-    file2 = create_walking_animation(np.pi/6, f'{output_dir}/walk_left_turn.gif')
-    animations.append(file2)
-    
-    # 3. 右转
-    print("\n【3/3】生成右转动画...")
-    file3 = create_walking_animation(-np.pi/6, f'{output_dir}/walk_right_turn.gif')
-    animations.append(file3)
-    
-    print("\n" + "="*60)
-    print("✅ 所有动画生成完成！")
-    print("="*60)
-    
-    for anim in animations:
-        print(f"  {anim}")
-    
-    print("\n动画说明：")
-    print("  - walk_straight.gif: 直行模式")
-    print("  - walk_left_turn.gif: 左转30°")
-    print("  - walk_right_turn.gif: 右转30°")
+    # 显示文件大小
+    if os.path.exists(output_file):
+        size = os.path.getsize(output_file) / 1024 / 1024  # MB
+        print(f"  walk_hq.gif: {size:.2f} MB")
 
 
 if __name__ == '__main__':
