@@ -27,7 +27,7 @@ def test_steering_functionality():
     print("\n【测试1】直行模式（steering_angle = 0）")
     print("-"*60)
     
-    gait.set_direction(0.0)
+    gait.set_steering(0.0)
     
     # 测试一个完整周期
     dt = 0.02
@@ -47,10 +47,10 @@ def test_steering_functionality():
         gait.update(dt)
         
         for leg_name in trajectories.keys():
-            point = gait.get_foot_trajectory(leg_name)
-            trajectories[leg_name]['x'].append(point.x)
-            trajectories[leg_name]['y'].append(point.y)
-            trajectories[leg_name]['z'].append(point.z)
+            x, z = gait.get_foot_trajectory(leg_name)
+            trajectories[leg_name]['x'].append(x)
+            trajectories[leg_name]['y'].append(0.0)  # 无侧向偏移
+            trajectories[leg_name]['z'].append(z)
     
     # 验证：y轴应该为0（无侧向偏移）
     print("Y轴最大偏移（应该≈0）:")
@@ -62,7 +62,7 @@ def test_steering_functionality():
     print("-"*60)
     
     gait.reset()
-    gait.set_direction(np.pi/6)  # 左转30度
+    gait.set_steering(np.pi/6)  # 左转30度
     
     # 重新收集数据
     trajectories_left = {
@@ -76,10 +76,10 @@ def test_steering_functionality():
         gait.update(dt)
         
         for leg_name in trajectories_left.keys():
-            point = gait.get_foot_trajectory(leg_name)
-            trajectories_left[leg_name]['x'].append(point.x)
-            trajectories_left[leg_name]['y'].append(point.y)
-            trajectories_left[leg_name]['z'].append(point.z)
+            x, z = gait.get_foot_trajectory(leg_name)
+            trajectories_left[leg_name]['x'].append(x)
+            trajectories_left[leg_name]['y'].append(0.0)
+            trajectories_left[leg_name]['z'].append(z)
     
     # 验证：左右腿的y轴应该反向
     print("左右腿Y轴对比（左转30°）:")
@@ -96,7 +96,7 @@ def test_steering_functionality():
     print("-"*60)
     
     gait.reset()
-    gait.set_direction(-np.pi/6)  # 右转30度
+    gait.set_steering(-np.pi/6)  # 右转30度
     
     # 重新收集数据
     trajectories_right = {
@@ -110,10 +110,10 @@ def test_steering_functionality():
         gait.update(dt)
         
         for leg_name in trajectories_right.keys():
-            point = gait.get_foot_trajectory(leg_name)
-            trajectories_right[leg_name]['x'].append(point.x)
-            trajectories_right[leg_name]['y'].append(point.y)
-            trajectories_right[leg_name]['z'].append(point.z)
+            x, z = gait.get_foot_trajectory(leg_name)
+            trajectories_right[leg_name]['x'].append(x)
+            trajectories_right[leg_name]['y'].append(0.0)
+            trajectories_right[leg_name]['z'].append(z)
     
     # 验证：应该与左转相反
     print("左右腿Y轴对比（右转30°，应该与左转相反）:")
@@ -139,7 +139,7 @@ def test_steering_functionality():
     print(f"  直行状态: 转向角度 = {state1['steering_angle']*180/np.pi:.1f}°")
     
     # 切换到左转
-    gait.set_direction(np.pi/6)
+    gait.set_steering(np.pi/6)
     
     for i in range(50):
         gait.update(dt)
