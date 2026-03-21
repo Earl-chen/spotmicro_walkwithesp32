@@ -160,9 +160,8 @@ def main():
     print("生成轻量级行走 GIF")
     print("=" * 60)
     
-    # 确保输出目录存在
-    output_dir = os.path.dirname(os.path.abspath(__file__))
-    output_file = os.path.join(output_dir, 'walk_straight.gif')
+    # 保存到当前工作目录
+    output_file = os.path.join(os.getcwd(), 'walk_straight.gif')
     
     print()
     create_lightweight_walking_gif(output_file)
