@@ -81,6 +81,19 @@ class WalkGait:
         # 转向系数（控制转向强度）
         self.steering_factor = 0.3
         
+        # 速度控制参数
+        # forward_speed: 前进速度 (m/s)，正值前进，负值后退，0停止
+        self.forward_speed = 0.0
+        # lateral_speed: 侧向速度 (m/s)，正值左移，负值右移，0不侧移
+        self.lateral_speed = 0.0
+        # yaw_rate: 偏航角速度 (rad/s)，正值左转，负值右转，0不转
+        self.yaw_rate = 0.0
+        
+        # 速度限制
+        self.max_forward_speed = 0.1  # 最大前进速度 (m/s)
+        self.max_lateral_speed = 0.05  # 最大侧向速度 (m/s)
+        self.max_yaw_rate = 1.0  # 最大偏航角速度 (rad/s)
+        
     def update(self, dt: float):
         """
         更新全局相位
@@ -133,27 +146,46 @@ class WalkGait:
         """
         leg_phase = self.get_leg_phase(leg_name)
         
+        # 根据速度控制调整步长
+        # forward_speed 影响步长的大小和方向
+        effective_stride = self.stride_length
+        
+        # 如果有前进速度，调整有效步长
+        if self.forward_speed != 0:
+            # 速度越快，步长越大（线性映射）
+            speed_ratio = abs(self.forward_speed) / self.max_forward_speed
+            speed_ratio = min(1.0, speed_ratio)  # 限制在 0-1 之间
+            effective_stride = self.stride_length * speed_ratio
+            
+            # 负速度 = 后退，反转步长方向
+            if self.forward_speed < 0:
+                effective_stride = -effective_stride
+        
         # 根据轨迹类型生成轨迹
         if self.trajectory_type == 'cycloid':
             x, y, z = TrajectoryGenerator.cycloid_trajectory(
                 leg_phase, 
-                self.stride_length, 
+                abs(effective_stride),  # 使用绝对值生成轨迹
                 self.step_height
             )
         elif self.trajectory_type == 'ellipse':
             x, y, z = TrajectoryGenerator.ellipse_trajectory(
                 leg_phase, 
-                self.stride_length, 
+                abs(effective_stride),
                 self.step_height
             )
         elif self.trajectory_type == 'bezier':
             x, y, z = TrajectoryGenerator.bezier_trajectory(
                 leg_phase, 
-                self.stride_length, 
+                abs(effective_stride),
                 self.step_height
             )
         else:
             raise ValueError(f"Unknown trajectory type: {self.trajectory_type}")
+        
+        # 如果后退，反转 x 轴
+        if effective_stride < 0:
+            x = -x
         
         # 差速转向：调整左右腿的步长
         if self.steering_angle != 0:
@@ -164,7 +196,10 @@ class WalkGait:
                 # 右侧腿：左转时步长增大，右转时步长减小
                 x *= (1 + self.steering_angle * self.steering_factor)
         
+        # 侧向速度：影响 y 轴偏移（简化实现，通过相位偏移实现）
         # 注意：y 轴偏移用于侧向步态，基础步态中为0
+        # 这里可以扩展为侧向移动功能
+        
         # 返回 (x, z) 保持向后兼容
         return x, z
     
@@ -256,6 +291,97 @@ class WalkGait:
         """
         self.steering_factor = max(0.1, min(0.5, factor))
     
+    def set_velocity(self, forward: float = 0.0, lateral: float = 0.0, yaw_rate: float = 0.0):
+        """
+        设置速度控制参数（统一的速度控制接口）
+        
+        参数：
+            forward: 前进速度 (m/s)
+                    正值 = 前进
+                    负值 = 后退
+                    0 = 停止
+            lateral: 侧向速度 (m/s)
+                    正值 = 左移
+                    负值 = 右移
+                    0 = 不侧移
+            yaw_rate: 偏航角速度 (rad/s)
+                     正值 = 左转
+                     负值 = 右转
+                     0 = 直行
+        
+        推荐范围：
+            - forward: -0.1 ~ +0.1 m/s
+            - lateral: -0.05 ~ +0.05 m/s
+            - yaw_rate: -1.0 ~ +1.0 rad/s
+        
+        示例：
+            >>> gait.set_velocity(forward=0.05)  # 前进 5cm/s
+            >>> gait.set_velocity(forward=-0.05)  # 后退 5cm/s
+            >>> gait.set_velocity(forward=0.05, yaw_rate=0.3)  # 前进+左转
+            >>> gait.set_velocity(0, 0, 0)  # 停止
+        """
+        # 限制速度范围
+        self.forward_speed = max(-self.max_forward_speed, min(self.max_forward_speed, forward))
+        self.lateral_speed = max(-self.max_lateral_speed, min(self.max_lateral_speed, lateral))
+        self.yaw_rate = max(-self.max_yaw_rate, min(self.max_yaw_rate, yaw_rate))
+        
+        # yaw_rate 映射到 steering_angle（转向）
+        # 线性映射：yaw_rate/max_yaw_rate -> steering_angle
+        if yaw_rate != 0:
+            self.steering_angle = yaw_rate / self.max_yaw_rate
+        else:
+            self.steering_angle = 0.0
+    
+    def set_direction(self, forward: float):
+        """
+        设置运动方向（简化的前进/后退控制）
+        
+        参数：
+            forward: 方向控制
+                    1.0 = 全速前进
+                    -1.0 = 全速后退
+                    0.0 = 停止
+                    0.5 = 半速前进
+                    -0.5 = 半速后退
+        
+        示例：
+            >>> gait.set_direction(1.0)   # 全速前进
+            >>> gait.set_direction(-1.0)  # 全速后退
+            >>> gait.set_direction(0.0)   # 停止
+            >>> gait.set_direction(0.5)   # 半速前进
+        """
+        # 限制在 -1.0 ~ 1.0 之间
+        forward = max(-1.0, min(1.0, forward))
+        
+        # 映射到 forward_speed
+        self.forward_speed = forward * self.max_forward_speed
+        
+        # 重置其他速度参数
+        self.lateral_speed = 0.0
+        self.yaw_rate = 0.0
+        self.steering_angle = 0.0
+    
+    def get_velocity(self) -> Dict[str, float]:
+        """
+        获取当前速度参数
+        
+        返回：
+            dict: {
+                'forward': 前进速度 (m/s),
+                'lateral': 侧向速度 (m/s),
+                'yaw_rate': 偏航角速度 (rad/s)
+            }
+        
+        示例：
+            >>> vel = gait.get_velocity()
+            >>> print(f"前进速度: {vel['forward']:.3f} m/s")
+        """
+        return {
+            'forward': self.forward_speed,
+            'lateral': self.lateral_speed,
+            'yaw_rate': self.yaw_rate
+        }
+    
     def get_state(self) -> Dict:
         """
         获取步态状态信息
@@ -275,13 +401,22 @@ class WalkGait:
             'trajectory_type': self.trajectory_type,
             'duty_cycle': 0.75,  # Walk 步态占空比
             'steering_angle': self.steering_angle,
-            'steering_factor': self.steering_factor
+            'steering_factor': self.steering_factor,
+            'forward_speed': self.forward_speed,
+            'lateral_speed': self.lateral_speed,
+            'yaw_rate': self.yaw_rate,
+            'max_forward_speed': self.max_forward_speed,
+            'max_lateral_speed': self.max_lateral_speed,
+            'max_yaw_rate': self.max_yaw_rate
         }
     
     def reset(self):
-        """重置步态相位和转向角度"""
+        """重置步态相位、转向角度和速度参数"""
         self.global_phase = 0.0
         self.steering_angle = 0.0
+        self.forward_speed = 0.0
+        self.lateral_speed = 0.0
+        self.yaw_rate = 0.0
 
 
 # 单元测试

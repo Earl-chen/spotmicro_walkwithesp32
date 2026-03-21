@@ -136,7 +136,7 @@ x, y, z = TrajectoryGenerator.bezier_trajectory(phase, stride_length, step_heigh
 
 ### 2. walk_gait.py - Walk 步态控制器
 
-**功能**：控制四条腿的协调运动，支持差速转向
+**功能**：控制四条腿的协调运动，支持差速转向和速度控制
 
 **API**：
 ```python
@@ -162,6 +162,33 @@ x, z = gait.get_foot_trajectory('right_front')
 trajectories = gait.get_all_foot_trajectories()
 # 返回：{'right_front': (x, z), 'left_back': (x, z), ...}
 
+# ========== 速度控制 API（新增）==========
+
+# 统一速度控制接口
+gait.set_velocity(forward=0.05, lateral=0.0, yaw_rate=0.3)
+# 参数：
+#   forward: 前进速度 (m/s)，正值前进，负值后退，0停止
+#   lateral: 侧向速度 (m/s)，正值左移，负值右移，0不侧移
+#   yaw_rate: 偏航角速度 (rad/s)，正值左转，负值右转，0直行
+
+# 简化的方向控制
+gait.set_direction(1.0)   # 全速前进
+gait.set_direction(-1.0)  # 全速后退
+gait.set_direction(0.0)   # 停止
+gait.set_direction(0.5)   # 半速前进
+# 参数：
+#   forward: 方向控制（-1.0 ~ 1.0）
+#           1.0 = 全速前进
+#           -1.0 = 全速后退
+#           0.0 = 停止
+#           0.5 = 半速前进
+
+# 获取当前速度
+vel = gait.get_velocity()
+# 返回：{'forward': ..., 'lateral': ..., 'yaw_rate': ...}
+
+# ========== 转向控制 API ==========
+
 # 设置转向（差速转向）
 gait.set_steering(0.5)   # 左转
 gait.set_steering(-0.5)  # 右转
@@ -170,16 +197,45 @@ gait.set_steering(0.0)   # 直行
 # 设置转向强度
 gait.set_steering_factor(0.3)  # 转向系数（0.1-0.5）
 
+# ========== 其他 API ==========
+
 # 设置轨迹类型
 gait.set_trajectory_type('cycloid')  # 'cycloid', 'ellipse', 'bezier'
 
+# 设置步态参数
+gait.set_parameters(stride_length=0.06, step_height=0.04, frequency=1.0)
+
 # 获取状态
 state = gait.get_state()
-# 返回：{'global_phase': ..., 'stride_length': ..., 'steering_angle': ..., ...}
+# 返回：{
+#   'global_phase': ...,
+#   'stride_length': ...,
+#   'step_height': ...,
+#   'frequency': ...,
+#   'steering_angle': ...,
+#   'forward_speed': ...,      # 新增
+#   'lateral_speed': ...,      # 新增
+#   'yaw_rate': ...,           # 新增
+#   ...
+# }
 
 # 重置
 gait.reset()
 ```
+
+**速度控制原理**：
+- **前进/后退**：通过调整步长的大小和方向实现
+  - 速度越快，步长越大（线性映射）
+  - 负速度时反转步长方向，实现后退
+- **转向**：通过调整左右腿的步长差异实现
+  - yaw_rate 映射到 steering_angle
+  - 左转时：左侧腿步长减小，右侧腿步长增大
+  - 右转时：左侧腿步长增大，右侧腿步长减小
+
+**推荐参数范围**：
+- `forward`: -0.1 ~ +0.1 m/s
+- `lateral`: -0.05 ~ +0.05 m/s
+- `yaw_rate`: -1.0 ~ +1.0 rad/s
 
 **差速转向原理**：
 - **左转**：左侧腿步长减小，右侧腿步长增大
@@ -235,6 +291,60 @@ python3 tests/test_steering.py
 - ✅ 左转模式测试
 - ✅ 右转模式测试
 - ✅ 转向系数测试
+
+---
+
+### 2.5. test_velocity_control.py - 速度控制测试（新增）
+
+**功能**：测试速度控制 API
+
+**运行**：
+```bash
+# 在 03_gait_control 目录下运行
+python3 tests/test_velocity_control.py
+```
+
+**测试内容**：
+- ✅ set_velocity() 基本功能测试
+  - 前进速度设置
+  - 后退速度设置
+  - 转向速度设置
+  - 复合运动设置
+  - 停止功能
+- ✅ 速度限制功能测试
+  - 超出最大前进速度
+  - 超出最大转向速度
+- ✅ set_direction() 功能测试
+  - 全速前进/后退
+  - 半速前进
+  - 停止
+  - 方向限制
+- ✅ 速度控制与轨迹生成集成测试
+  - 前进轨迹生成
+  - 后退轨迹生成
+  - 停止轨迹生成
+  - 转向轨迹生成（左右腿步长差异）
+- ✅ 动态速度变化测试
+  - 从停止到前进
+  - 从前进到后退
+  - 连续速度变化
+- ✅ get_state() 包含速度信息测试
+- ✅ reset() 重置速度参数测试
+
+**预期输出**：
+```
+🎉 所有测试通过！
+
+测试覆盖:
+  ✅ set_velocity(forward, lateral, yaw_rate)
+  ✅ set_direction(forward)
+  ✅ get_velocity()
+  ✅ 速度限制功能
+  ✅ 轨迹生成集成
+  ✅ 动态速度变化
+  ✅ get_state() 包含速度信息
+  ✅ reset() 重置速度
+```
 
 ---
 
@@ -534,7 +644,7 @@ plt.legend(prop=font_prop)
 
 ---
 
-## 📊 测试结果（2026-03-21）
+## 📊 测试结果（2026-03-22）
 
 ### ✅ 所有核心测试通过
 
@@ -544,9 +654,21 @@ plt.legend(prop=font_prop)
 ✅ 支撑腿数量测试通过（每时刻 3 条）
 ✅ 相位差测试通过（90°）
 ✅ 差速转向测试通过
+✅ 速度控制测试通过（7个子测试全部通过）
 ✅ 中文字体测试通过
 ✅ IK 成功率 100%
 ```
+
+### 新增测试覆盖
+
+**速度控制 API 测试（test_velocity_control.py）**：
+- ✅ set_velocity() 基本功能（前进、后退、转向、复合运动、停止）
+- ✅ 速度限制功能（超出最大值自动限制）
+- ✅ set_direction() 功能（全速、半速、停止、方向限制）
+- ✅ 速度控制与轨迹生成集成（前进/后退轨迹、转向轨迹）
+- ✅ 动态速度变化（从停止到前进、从前进攻到后退、连续变化）
+- ✅ get_state() 包含速度信息
+- ✅ reset() 正确重置速度参数
 
 ---
 
@@ -556,6 +678,7 @@ plt.legend(prop=font_prop)
 |------|------|------|
 | v1.0 | 2026-03-19 | Walk 步态修正完成，占空比 25%/75% |
 | v1.1 | 2026-03-21 | 添加差速转向功能，改进步态可视化 |
+| v1.2 | 2026-03-22 | 添加速度控制 API（set_velocity, set_direction），完善测试和文档 |
 
 ---
 
