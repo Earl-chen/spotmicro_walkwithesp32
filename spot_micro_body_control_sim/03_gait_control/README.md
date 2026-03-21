@@ -51,50 +51,54 @@ pip install numpy matplotlib
 
 ### 运行测试
 
+**前提**：先进入 `03_gait_control` 目录
+
 ```bash
-cd tests/
+cd /path/to/spot_micro_body_control_sim/03_gait_control
 
 # 运行所有测试
-python3 test_walk_gait.py
+python3 tests/test_walk_gait.py
 
 # 验证占空比（75%）
-python3 verify_duty_cycle.py
+python3 tests/verify_duty_cycle.py
 
 # 验证支撑腿数量（3条）
-python3 verify_support_legs.py
+python3 tests/verify_support_legs.py
 
 # 验证轨迹生成
-python3 verify_trajectory.py
+python3 tests/verify_trajectory.py
 
 # 测试差速转向
-python3 test_steering.py
+python3 tests/test_steering.py
 
 # 测试中文字体
-python3 test_chinese_font.py
+python3 tests/test_chinese_font.py
 ```
 
 ### 生成可视化
 
+**前提**：先进入 `03_gait_control` 目录
+
 ```bash
-cd tests/visual/
+cd /path/to/spot_micro_body_control_sim/03_gait_control
 
 # 3D 步态动画
-python3 visualize_walk_gait.py
+python3 tests/visual/visualize_walk_gait.py
 
 # 转向可视化
-python3 visualize_steering.py
+python3 tests/visual/visualize_steering.py
 
 # 步态轨迹图（2×2 子图）
-python3 plot_gait_trajectory_v2.py
+python3 tests/visual/plot_gait_trajectory_v2.py
 
 # 腿部相位图
-python3 plot_leg_phases.py
+python3 tests/visual/plot_leg_phases.py
 
 # 行走 GIF（高质量，3.9MB）
-python3 generate_walking_gif.py
+python3 tests/visual/generate_walking_gif.py
 
 # 行走 GIF（轻量版，250KB）
-python3 generate_lightweight_gif.py
+python3 tests/visual/generate_lightweight_gif.py
 ```
 
 ---
@@ -198,7 +202,8 @@ gait.reset()
 
 **运行**：
 ```bash
-python3 test_walk_gait.py
+# 在 03_gait_control 目录下运行
+python3 tests/test_walk_gait.py
 ```
 
 **测试内容**：
@@ -221,7 +226,8 @@ python3 test_walk_gait.py
 
 **运行**：
 ```bash
-python3 test_steering.py
+# 在 03_gait_control 目录下运行
+python3 tests/test_steering.py
 ```
 
 **测试内容**：
@@ -238,7 +244,8 @@ python3 test_steering.py
 
 **运行**：
 ```bash
-python3 verify_duty_cycle.py
+# 在 03_gait_control 目录下运行
+python3 tests/verify_duty_cycle.py
 ```
 
 **输出**：
@@ -262,7 +269,8 @@ python3 verify_duty_cycle.py
 
 **运行**：
 ```bash
-python3 verify_support_legs.py
+# 在 03_gait_control 目录下运行
+python3 tests/verify_support_legs.py
 ```
 
 **预期结果**：
@@ -284,7 +292,8 @@ python3 verify_support_legs.py
 
 **运行**：
 ```bash
-python3 verify_trajectory.py
+# 在 03_gait_control 目录下运行
+python3 tests/verify_trajectory.py
 ```
 
 **输出**：
@@ -305,7 +314,8 @@ python3 verify_trajectory.py
 
 **运行**：
 ```bash
-python3 test_chinese_font.py
+# 在 03_gait_control 目录下运行
+python3 tests/test_chinese_font.py
 ```
 
 **输出**：
@@ -338,7 +348,8 @@ plt.title("中文标题", fontproperties=font_prop)
 
 **运行**：
 ```bash
-python3 visualize_walk_gait.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/visualize_walk_gait.py
 ```
 
 **输出**：
@@ -358,7 +369,8 @@ python3 visualize_walk_gait.py
 
 **运行**：
 ```bash
-python3 visualize_steering.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/visualize_steering.py
 ```
 
 **输出**：
@@ -383,7 +395,8 @@ python3 visualize_steering.py
 
 **运行**：
 ```bash
-python3 plot_gait_trajectory_v2.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/plot_gait_trajectory_v2.py
 ```
 
 **输出**：
@@ -409,7 +422,8 @@ python3 plot_gait_trajectory_v2.py
 
 **运行**：
 ```bash
-python3 plot_leg_phases.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/plot_leg_phases.py
 ```
 
 **输出**：
@@ -423,7 +437,8 @@ python3 plot_leg_phases.py
 
 **运行**：
 ```bash
-python3 generate_walking_gif.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/generate_walking_gif.py
 ```
 
 **输出**：
@@ -444,7 +459,8 @@ python3 generate_walking_gif.py
 
 **运行**：
 ```bash
-python3 generate_lightweight_gif.py
+# 在 03_gait_control 目录下运行
+python3 tests/visual/generate_lightweight_gif.py
 ```
 
 **输出**：
