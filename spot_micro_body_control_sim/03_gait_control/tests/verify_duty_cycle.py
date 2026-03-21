@@ -40,7 +40,7 @@ def _get_font_path():
 
 def setup_chinese_font():
     """
-    配置中文字体
+    配置中文字体（兼容旧版本 matplotlib）
     
     Returns:
         FontProperties: 字体属性对象
@@ -53,17 +53,34 @@ def setup_chinese_font():
     
     if os.path.exists(font_file):
         try:
-            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
-            fm.fontManager.addfont(font_file)
-            
             # 创建 FontProperties
             font_prop = fm.FontProperties(fname=font_file)
+            
+            # 尝试方法1：matplotlib 3.2+ 使用 addfont
+            try:
+                fm.fontManager.addfont(font_file)
+                print(f"  ✅ 已加载 (addfont): {font_prop.get_name()}\n")
+            except AttributeError:
+                # 方法2：旧版本 matplotlib，手动添加到字体列表
+                try:
+                    fm.fontManager.ttflist.append(fm.FontEntry(
+                        fname=font_file,
+                        name=font_prop.get_name(),
+                        style=font_prop.get_style(),
+                        variant=font_prop.get_variant(),
+                        weight=font_prop.get_weight(),
+                        stretch=font_prop.get_stretch(),
+                        size=font_prop.get_size()
+                    ))
+                    print(f"  ✅ 已加载 (ttflist): {font_prop.get_name()}\n")
+                except Exception:
+                    # 方法3：不添加到全局，只返回 FontProperties
+                    print(f"  ✅ 已加载 (FontProperties): {font_prop.get_name()}\n")
             
             # 设置全局字体
             plt.rcParams['font.family'] = font_prop.get_name()
             plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
             
-            print(f"  ✅ 已加载: {font_prop.get_name()}\n")
             return font_prop
         except Exception as e:
             print(f"  ❌ 加载失败: {e}\n")

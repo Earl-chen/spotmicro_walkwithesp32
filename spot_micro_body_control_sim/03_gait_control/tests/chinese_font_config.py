@@ -52,11 +52,37 @@ def setup_chinese_font(verbose=True):
     except:
         pass
     
-    # 使用 addfont 方法注册字体
-    if hasattr(fm.fontManager, 'addfont'):
-        fm.fontManager.addfont(font_path)
+    # 创建 FontProperties
+    font_prop = fm.FontProperties(fname=font_path)
+    font_name = font_prop.get_name()
+    
+    # 注册字体（兼容新旧版本）
+    try:
+        # 方法1：matplotlib 3.2+ 使用 addfont
+        if hasattr(fm.fontManager, 'addfont'):
+            fm.fontManager.addfont(font_path)
+            if verbose:
+                print(f"✅ 字体已注册 (addfont)")
+        else:
+            # 方法2：旧版本 matplotlib，手动添加到字体列表
+            try:
+                fm.fontManager.ttflist.append(fm.FontEntry(
+                    fname=font_path,
+                    name=font_name,
+                    style=font_prop.get_style(),
+                    variant=font_prop.get_variant(),
+                    weight=font_prop.get_weight(),
+                    stretch=font_prop.get_stretch(),
+                    size=font_prop.get_size()
+                ))
+                if verbose:
+                    print(f"✅ 字体已注册 (ttflist)")
+            except Exception as e:
+                if verbose:
+                    print(f"⚠️ 无法注册字体到全局列表: {e}")
+    except Exception as e:
         if verbose:
-            print(f"✅ 字体已注册")
+            print(f"⚠️ 字体注册失败: {e}")
     
     # 创建 FontProperties
     font_prop = fm.FontProperties(fname=font_path)
