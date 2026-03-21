@@ -177,12 +177,13 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
             
             previous_phase = gait.global_phase
             
-            # 更新机体位置和姿态（前进 + 旋转）
+            # 更新机体位置（前进，姿态不变）
             body_x = total_distance + gait.global_phase * gait.stride_length
-            controller.set_body_pose(body_x, 0, -0.1, 0, 0, rotation_angle)
+            controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
         else:  # 零半径转向（无前进）
-            # 机体位置保持不变，但姿态旋转
-            controller.set_body_pose(0, 0, -0.1, 0, 0, rotation_angle)
+            # 机体位置和姿态保持不变
+            # 转向通过腿部运动实现（左腿后退，右腿前进）
+            controller.set_body_pose(0, 0, -0.1, 0, 0, 0)
             previous_phase = gait.global_phase
         
         # 记录基座位置
