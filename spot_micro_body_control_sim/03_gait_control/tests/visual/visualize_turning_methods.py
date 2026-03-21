@@ -137,6 +137,13 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
     # 捕获初始足端位置
     initial_foot_positions = capture_initial_positions(model)
     
+    # 累计前进距离
+    total_distance = 0.0
+    previous_phase = 0.0
+    
+    # 记录基座轨迹
+    body_trajectory = []
+    
     # 创建图形
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -145,106 +152,128 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
     ik_success = {leg: 0 for leg in model.legs.keys()}
     ik_total = {leg: 0 for leg in model.legs.keys()}
     
-    def draw_robot(ax, model, gait, initial_positions, chinese_font):
-        """绘制机器人"""
-        ax.clear()
+    def update(frame):
+        """更新动画帧"""
+        nonlocal total_distance, previous_phase
         
-        # 设置坐标轴
-        ax.set_xlim(-0.3, 0.3)
-        ax.set_ylim(-0.3, 0.3)
-        ax.set_zlim(-0.3, 0.1)
-        ax.set_xlabel('X (m)', fontsize=10, fontproperties=chinese_font)
-        ax.set_ylabel('Y (m)', fontsize=10, fontproperties=chinese_font)
-        ax.set_zlabel('Z (m)', fontsize=10, fontproperties=chinese_font)
+        gait.update(dt)
         
-        # 获取速度信息
-        vel = gait.get_velocity()
-        ax.set_title(f'{title}\n'
-                    f'前进: {vel["forward"]*100:.1f} cm/s | '
-                    f'转向: {vel["yaw_rate"]:.2f} rad/s',
-                    fontsize=12, fontproperties=chinese_font)
+        # 累计前进距离
+        if gait.global_phase < previous_phase:
+            total_distance += gait.stride_length
         
-        # 绘制身体（矩形）
-        body_corners = np.array([
-            [0.10375, 0.039, 0.0],
-            [0.10375, -0.039, 0.0],
-            [-0.10375, -0.039, 0.0],
-            [-0.10375, 0.039, 0.0],
-            [0.10375, 0.039, 0.0]
-        ])
-        ax.plot(body_corners[:, 0], body_corners[:, 1], body_corners[:, 2], 
-                'b-', linewidth=2, label='身体')
+        previous_phase = gait.global_phase
         
-        # 绘制腿部
-        colors = {
-            'left_front': '#FF6B6B',
-            'right_front': '#4ECDC4',
-            'left_back': '#45B7D1',
-            'right_back': '#FFA07A'
-        }
+        # 更新机体位置
+        body_x = total_distance + gait.global_phase * gait.stride_length
+        controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
         
-        for leg_name in model.legs.keys():
-            # 获取步态偏移
-            x_offset, z_offset = gait.get_foot_trajectory(leg_name)
-            
-            # 目标足端位置（髋关节坐标系）
-            init_pos = initial_positions[leg_name]
-            target_hip = np.array([
-                init_pos[0] + x_offset,
-                init_pos[1],
-                init_pos[2] + z_offset
-            ])
-            
-            # 获取腿的运动学对象
+        # 记录基座位置
+        body_pos = model.frame_manager.transform_point(np.array([0, 0, 0]), "body", "world")
+        body_trajectory.append(body_pos.copy())
+        
+        # 更新所有腿的姿态
+        trajectories = gait.get_all_foot_trajectories()
+        
+        for leg_name, (x_offset, z_offset) in trajectories.items():
             legkin, hip_frame = model.legs[leg_name]
             
-            # IK 求解（在髋关节坐标系）
-            ik_total[leg_name] += 1
-            ik_result = legkin.inverse(target_hip)
+            initial_pos = initial_foot_positions[leg_name]
+            target_foot_pos_hip = initial_pos + np.array([x_offset, 0, z_offset])
             
+            ik_result = legkin.inverse(target_foot_pos_hip)
+            
+            ik_total[leg_name] += 1
             if ik_result.success:
                 ik_success[leg_name] += 1
                 model.update_joint_angles(leg_name, ik_result.joints)
+        
+        # 清除并重新绘制
+        ax.clear()
+        
+        # 绘制基座轨迹
+        if len(body_trajectory) > 1:
+            traj = np.array(body_trajectory)
+            ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], 
+                   color='blue', linewidth=2, alpha=0.6, label='基座轨迹')
+            ax.scatter(traj[-1, 0], traj[-1, 1], traj[-1, 2], 
+                      color='blue', s=200, marker='^', 
+                      edgecolors='black', linewidths=2, 
+                      label='当前基座位置', zorder=10)
+        
+        # 绘制机体
+        body_outline = model.get_body_outline_world()
+        body_x_pts = [p[0] for p in body_outline] + [body_outline[0][0]]
+        body_y_pts = [p[1] for p in body_outline] + [body_outline[0][1]]
+        body_z_pts = [p[2] for p in body_outline] + [body_outline[0][2]]
+        ax.plot(body_x_pts, body_y_pts, body_z_pts, 'b-', linewidth=3)
+        
+        # 绘制四条腿（完整关节连接）
+        colors = {
+            'left_front': 'red', 
+            'left_back': 'green', 
+            'right_front': 'orange', 
+            'right_back': 'purple'
+        }
+        
+        for leg_name in geometry.HIP_OFFSETS.keys():
+            # 获取所有关节位置（世界坐标系）
+            joint_positions = model.get_leg_joints_world(leg_name)
+            
+            # 绘制腿部连接（髋→膝→足）
+            for i in range(len(joint_positions) - 1):
+                p1 = joint_positions[i]
+                p2 = joint_positions[i + 1]
+                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
+                       c=colors[leg_name], linewidth=4, solid_capstyle='round')
+            
+            # 绘制关节点
+            for i, pos in enumerate(joint_positions):
+                is_foot = (i == len(joint_positions) - 1)
+                leg_phase = gait.get_leg_phase(leg_name)
+                is_swing = leg_phase < 0.25
                 
-                # 获取关节位置（body 坐标系）
-                joint_positions = model.get_leg_joints_body(leg_name)
+                if is_foot:
+                    marker = 'o' if is_swing else 's'
+                    size = 120 if is_swing else 180
+                    alpha = 1.0 if is_swing else 0.7
+                else:
+                    marker = 'o'
+                    size = 100
+                    alpha = 1.0
                 
-                # 获取髋关节位置（直接从 geometry）
-                hip_offset = geometry.HIP_OFFSETS[leg_name]
-                hip_pos = np.array(hip_offset)
-                
-                # 绘制腿部关节连接
-                shoulder_pos = joint_positions[1]
-                elbow_pos = joint_positions[2]
-                foot_pos = joint_positions[3]
-                
-                # 绘制连接线
-                ax.plot([hip_pos[0], shoulder_pos[0]], 
-                       [hip_pos[1], shoulder_pos[1]], 
-                       [hip_pos[2], shoulder_pos[2]], 
-                       'k-', linewidth=2)
-                ax.plot([shoulder_pos[0], elbow_pos[0]], 
-                       [shoulder_pos[1], elbow_pos[1]], 
-                       [shoulder_pos[2], elbow_pos[2]], 
-                       color=colors[leg_name], linewidth=2)
-                ax.plot([elbow_pos[0], foot_pos[0]], 
-                       [elbow_pos[1], foot_pos[1]], 
-                       [elbow_pos[2], foot_pos[2]], 
-                       color=colors[leg_name], linewidth=2)
-                
-                # 绘制关节点
-                ax.scatter(*hip_pos, c='black', s=30, zorder=5)
-                ax.scatter(*shoulder_pos, c='black', s=30, zorder=5)
-                ax.scatter(*elbow_pos, c=colors[leg_name], s=30, zorder=5)
-                ax.scatter(*foot_pos, c=colors[leg_name], s=50, marker='o', zorder=5)
+                ax.scatter([pos[0]], [pos[1]], [pos[2]], 
+                          c=colors[leg_name], s=size, marker=marker, 
+                          edgecolors='black', linewidths=1.5, alpha=alpha)
+        
+        # 统计支撑腿数量
+        stance_count = sum(1 for leg in model.legs.keys() 
+                          if gait.get_leg_phase(leg) >= 0.25)
+        
+        # 设置坐标轴
+        ax.set_xlabel('X (m)', fontsize=11)
+        ax.set_ylabel('Y (m)', fontsize=11)
+        ax.set_zlabel('Z (m)', fontsize=11)
+        
+        # 视野跟随
+        body_center = model.frame_manager.transform_point(np.array([0, 0, 0]), "body", "world")
+        ax.set_xlim([body_center[0] - 0.3, body_center[0] + 0.3])
+        ax.set_ylim([-0.3, 0.3])
+        ax.set_zlim([-0.4, 0.2])
+        ax.view_init(elev=20, azim=45)
+        
+        # 获取速度信息
+        vel = gait.get_velocity()
+        
+        # 设置标题
+        ax.set_title(f'{title}\n'
+                    f'前进: {vel["forward"]*100:.1f} cm/s | '
+                    f'转向: {vel["yaw_rate"]:.2f} rad/s | '
+                    f'支撑腿: {stance_count}/4',
+                    fontsize=12, fontproperties=chinese_font)
         
         ax.legend(prop=chinese_font, loc='upper left')
-        ax.view_init(elev=30, azim=-60)
-    
-    def update(frame):
-        """更新动画帧"""
-        gait.update(dt)
-        draw_robot(ax, model, gait, initial_foot_positions, chinese_font)
+        
         return []
     
     # 创建动画
@@ -278,6 +307,8 @@ def main():
     print("  2. 绘制完整的机器人形态（身体 + 关节连接）")
     print("  3. 3D 视图展示真实的腿部运动")
     print("  4. 展示不同转向方法的效果")
+    print("  5. 累计前进距离和基座轨迹")
+    print("  6. 视野跟随机器人移动")
     print()
     
     # 输出目录
