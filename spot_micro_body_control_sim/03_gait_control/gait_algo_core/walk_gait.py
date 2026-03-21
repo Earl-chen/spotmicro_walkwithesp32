@@ -410,6 +410,107 @@ class WalkGait:
             'max_yaw_rate': self.max_yaw_rate
         }
     
+    def cmd_vel(self, linear_x: float = 0.0, linear_y: float = 0.0, angular_z: float = 0.0):
+        """
+        ROS 风格的速度控制接口
+        
+        参数：
+            linear_x: 前进速度 (m/s)
+                     正值 = 前进
+                     负值 = 后退
+                     0 = 停止
+            linear_y: 侧向速度 (m/s)
+                     正值 = 左移
+                     负值 = 右移
+                     0 = 不侧移
+            angular_z: 偏航角速度 (rad/s)
+                      正值 = 左转
+                      负值 = 右转
+                      0 = 直行
+        
+        说明：
+            这是 ROS 风格的 cmd_vel 接口封装，底层调用 set_velocity 方法。
+            参数命名遵循 ROS 标准：
+            - linear_x: 线速度 X 分量（前进方向）
+            - linear_y: 线速度 Y 分量（侧向）
+            - angular_z: 角速度 Z 分量（偏航）
+        
+        示例：
+            >>> gait.cmd_vel(linear_x=0.05)  # 前进 5cm/s
+            >>> gait.cmd_vel(linear_x=-0.05)  # 后退 5cm/s
+            >>> gait.cmd_vel(linear_x=0.05, angular_z=0.3)  # 前进+左转
+            >>> gait.cmd_vel(0, 0, 0)  # 停止
+        """
+        self.set_velocity(forward=linear_x, lateral=linear_y, yaw_rate=angular_z)
+    
+    def zero_radius_turn(self, yaw_rate: float):
+        """
+        零半径转向（原地转向）
+        
+        参数：
+            yaw_rate: 偏航角速度 (rad/s)
+                     正值 = 左转
+                     负值 = 右转
+                     0 = 停止
+        
+        说明：
+            零半径转向是一种特殊的转向方式，机器人原地旋转而不产生线性位移。
+            通过设置 forward=0 和 lateral=0，只有 yaw_rate 来实现。
+            适合在狭窄空间或需要精确调整朝向的场景。
+        
+        示例：
+            >>> gait.zero_radius_turn(0.5)   # 原地左转
+            >>> gait.zero_radius_turn(-0.5)  # 原地右转
+            >>> gait.zero_radius_turn(0.0)   # 停止
+        """
+        # 零半径转向：只有角速度，无前进和侧向速度
+        self.set_velocity(forward=0.0, lateral=0.0, yaw_rate=yaw_rate)
+    
+    def cmd_vel_adaptive(self, linear_x: float = 0.0, linear_y: float = 0.0, angular_z: float = 0.0):
+        """
+        自适应速度控制接口（根据角速度和前进速度自动选择转向方案）
+        
+        参数：
+            linear_x: 前进速度 (m/s)
+                     正值 = 前进
+                     负值 = 后退
+                     0 = 停止
+            linear_y: 侧向速度 (m/s)
+                     正值 = 左移
+                     负值 = 右移
+                     0 = 不侧移
+            angular_z: 偏航角速度 (rad/s)
+                      正值 = 左转
+                      负值 = 右转
+                      0 = 直行
+        
+        说明：
+            自适应转向策略：
+            - 当 angular_z > 0.5 且 linear_x < 0.02 时，使用零半径转向
+              （大角度转向且几乎没有前进速度 → 原地转向更高效）
+            - 其他情况使用差速转向
+              （小角度转向或有前进速度 → 差速转向更稳定）
+        
+        示例：
+            >>> # 差速转向（前进+小角度转向）
+            >>> gait.cmd_vel_adaptive(linear_x=0.05, angular_z=0.3)
+            >>> 
+            >>> # 零半径转向（大角度转向+几乎无前进）
+            >>> gait.cmd_vel_adaptive(linear_x=0.01, angular_z=0.8)
+            >>> 
+            >>> # 停止
+            >>> gait.cmd_vel_adaptive(0, 0, 0)
+        """
+        # 自适应转向逻辑
+        use_zero_radius = (abs(angular_z) > 0.5) and (abs(linear_x) < 0.02)
+        
+        if use_zero_radius:
+            # 零半径转向：只有角速度
+            self.zero_radius_turn(yaw_rate=angular_z)
+        else:
+            # 差速转向：正常调用 cmd_vel
+            self.cmd_vel(linear_x=linear_x, linear_y=linear_y, angular_z=angular_z)
+    
     def reset(self):
         """重置步态相位、转向角度和速度参数"""
         self.global_phase = 0.0
