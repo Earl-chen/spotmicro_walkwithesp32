@@ -146,20 +146,40 @@ class WalkGait:
         """
         leg_phase = self.get_leg_phase(leg_name)
         
-        # 根据速度控制调整步长
-        # forward_speed 影响步长的大小和方向
-        effective_stride = self.stride_length
-        
-        # 如果有前进速度，调整有效步长
-        if self.forward_speed != 0:
-            # 速度越快，步长越大（线性映射）
-            speed_ratio = abs(self.forward_speed) / self.max_forward_speed
-            speed_ratio = min(1.0, speed_ratio)  # 限制在 0-1 之间
-            effective_stride = self.stride_length * speed_ratio
+        # 零半径转向的特殊处理
+        if abs(self.forward_speed) < 0.001 and abs(self.steering_angle) > 0.01:
+            # 零半径转向：左侧腿和右侧腿向相反方向运动
+            # 使用相同的步长，但方向相反
+            turn_stride = abs(self.steering_angle) * self.stride_length * self.steering_factor
             
-            # 负速度 = 后退，反转步长方向
-            if self.forward_speed < 0:
-                effective_stride = -effective_stride
+            if leg_name in ['left_front', 'left_back']:
+                # 左侧腿
+                if self.steering_angle > 0:  # 左转
+                    effective_stride = -turn_stride  # 后退
+                else:  # 右转
+                    effective_stride = turn_stride   # 前进
+            else:
+                # 右侧腿
+                if self.steering_angle > 0:  # 左转
+                    effective_stride = turn_stride   # 前进
+                else:  # 右转
+                    effective_stride = -turn_stride  # 后退
+        else:
+            # 正常行走或带速度转向
+            # 根据速度控制调整步长
+            # forward_speed 影响步长的大小和方向
+            effective_stride = self.stride_length
+            
+            # 如果有前进速度，调整有效步长
+            if self.forward_speed != 0:
+                # 速度越快，步长越大（线性映射）
+                speed_ratio = abs(self.forward_speed) / self.max_forward_speed
+                speed_ratio = min(1.0, speed_ratio)  # 限制在 0-1 之间
+                effective_stride = self.stride_length * speed_ratio
+                
+                # 负速度 = 后退，反转步长方向
+                if self.forward_speed < 0:
+                    effective_stride = -effective_stride
         
         # 根据轨迹类型生成轨迹
         if self.trajectory_type == 'cycloid':
@@ -187,8 +207,20 @@ class WalkGait:
         if effective_stride < 0:
             x = -x
         
-        # 差速转向：调整左右腿的步长
-        if self.steering_angle != 0:
+        # 零半径转向：反转左腿或右腿的整个周期
+        if abs(self.forward_speed) < 0.001 and abs(self.steering_angle) > 0.01:
+            if self.steering_angle > 0:  # 左转
+                # 左腿后退：反转 x 轴
+                if leg_name in ['left_front', 'left_back']:
+                    x = -x
+            else:  # 右转
+                # 右腿后退：反转 x 轴
+                if leg_name in ['right_front', 'right_back']:
+                    x = -x
+        
+        # 差速转向：调整左右腿的步长（仅在非零半径转向时）
+        # 零半径转向已经在上面处理了左右腿的差异
+        if self.steering_angle != 0 and abs(self.forward_speed) > 0.001:
             if leg_name in ['left_front', 'left_back']:
                 # 左侧腿：左转时步长减小，右转时步长增大
                 x *= (1 - self.steering_angle * self.steering_factor)
