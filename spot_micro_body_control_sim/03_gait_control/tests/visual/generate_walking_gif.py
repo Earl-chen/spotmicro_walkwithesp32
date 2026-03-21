@@ -19,42 +19,12 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle, Circle
 from matplotlib import font_manager as fm
 
+# 导入通用中文字体配置模块
 module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, module_root)
 from gait_algo_core.walk_gait import WalkGait
-
-# =============================================================================
-# 中文字体配置
-# =============================================================================
-_FONT_FILE_RELATIVE = os.path.join('..', '..', '..', 'fonts', 'BabelStoneHan.ttf')
-
-def _get_font_path():
-    """获取字体文件的绝对路径"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    font_file = os.path.join(script_dir, _FONT_FILE_RELATIVE)
-    return os.path.normpath(font_file)
-
-def setup_chinese_font():
-    """配置中文字体"""
-    font_file = _get_font_path()
-    
-    if os.path.exists(font_file):
-        try:
-            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
-            _safe_addfont(font_file)
-            
-            # 创建 FontProperties
-            font_prop = fm.FontProperties(fname=font_file)
-            
-            # 设置全局字体
-            plt.rcParams['font.family'] = font_prop.get_name()
-            plt.rcParams['axes.unicode_minus'] = False
-            
-            return font_prop
-        except Exception as e:
-            print(f"⚠️ 字体加载失败: {e}")
-    
-    return fm.FontProperties()
+sys.path.insert(0, os.path.join(module_root, 'tests'))
+from chinese_font_config import setup_chinese_font
 
 # 配置中文字体
 chinese_font = setup_chinese_font()
@@ -282,9 +252,8 @@ def main():
     print("四足机器人行走动画生成器")
     print("=" * 60)
     
-    # 确保输出目录存在
-    output_dir = os.path.dirname(os.path.abspath(__file__))
-    output_file = os.path.join(output_dir, 'walk_hq.gif')
+    # 保存到当前工作目录
+    output_file = os.path.join(os.getcwd(), 'walk_hq.gif')
     
     # 生成动画
     create_walking_animation(output_file)
