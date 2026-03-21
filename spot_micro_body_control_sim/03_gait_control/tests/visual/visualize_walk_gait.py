@@ -66,7 +66,7 @@ def setup_chinese_font():
                     pass
                 
                 if hasattr(fm.fontManager, 'addfont'):
-                    fm.fontManager.addfont(abs_path)
+                    _safe_addfont(abs_path)
                 
                 chinese_font = fm.FontProperties(fname=abs_path)
                 font_name = chinese_font.get_name()

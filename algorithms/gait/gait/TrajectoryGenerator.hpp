@@ -145,6 +145,73 @@ public:
     }
     
     /**
+     * @brief 根据轨迹类型生成带转向的轨迹
+     */
+    static TrajectoryPoint generate_with_steering(
+        float phase,
+        float stride_length,
+        float step_height,
+        float steering_angle,
+        TrajectoryType type = TrajectoryType::CYCLOID
+    ) {
+        if (type == TrajectoryType::CYCLOID) {
+            return cycloid_trajectory_with_steering(phase, stride_length, step_height, steering_angle);
+        } else {
+            // 其他轨迹类型暂不支持转向
+            return generate(phase, stride_length, step_height, type);
+        }
+    }
+    
+    /**
+     * @brief 摆线轨迹（带转向支持）
+     * 
+     * @param phase 相位 (0-1)
+     * @param stride_length 步长 (米)
+     * @param step_height 抬腿高度 (米)
+     * @param steering_angle 转向角度 (弧度)，正=左转，负=右转
+     * @return TrajectoryPoint 包含x, y, z偏移
+     */
+    static TrajectoryPoint cycloid_trajectory_with_steering(
+        float phase, 
+        float stride_length = 0.05f, 
+        float step_height = 0.03f,
+        float steering_angle = 0.0f
+    ) {
+        TrajectoryPoint point;
+        point.phase = phase;
+        
+        // 基础轨迹（前后）
+        if (phase < 0.25f) {  // 摆动相（25%）
+            float t = phase * 4 * M_PI;
+            point.position.x = stride_length / 2 * (t / M_PI - 1);
+            point.position.z = step_height * (1 - std::cos(t)) / 2;
+            point.is_swing = true;
+        } else {  // 支撑相（75%）
+            float t = (phase - 0.25f) * 4 / 3;
+            point.position.x = stride_length / 2 * (1 - 2 * t);
+            point.position.z = 0;
+            point.is_swing = false;
+        }
+        
+        // 转向轨迹（侧向）
+        if (std::abs(steering_angle) > 0.001f) {
+            float steering_factor = std::tan(steering_angle);
+            
+            if (phase < 0.25f) {  // 摆动相
+                point.position.y = stride_length * steering_factor * 0.3f * 
+                                   std::sin(phase * 4 * M_PI);
+            } else {  // 支撑相
+                float t = (phase - 0.25f) * 4 / 3;
+                point.position.y = stride_length * steering_factor * 0.2f * (1 - 2 * t);
+            }
+        } else {
+            point.position.y = 0;
+        }
+        
+        return point;
+    }
+    
+    /**
      * @brief 验证轨迹闭合性
      * 
      * @param stride_length 步长

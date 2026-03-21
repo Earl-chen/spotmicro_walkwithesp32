@@ -42,6 +42,7 @@ public:
       , frequency_(frequency)
       , global_phase_(0.0f)
       , trajectory_type_(TrajectoryType::CYCLOID)
+      , steering_angle_(0.0f)
     {
         // Walk 步态相位偏移（依次抬腿）
         // 相位差 90° 确保三足支撑
@@ -53,7 +54,8 @@ public:
         // 初始化腿部状态
         for (int i = 0; i < 4; i++) {
             leg_states_[static_cast<LegIndex>(i)] = LegState();
-            leg_states_[static_cast<LegIndex>(i)].phase_offset = phase_offsets_[static_cast<LegIndex>(i)];
+            leg_states_[static_cast<LegIndex>(i)].phase_offset = 
+                phase_offsets_[static_cast<LegIndex>(i)];
         }
     }
     
@@ -88,7 +90,7 @@ public:
     }
     
     /**
-     * @brief 获取指定腿的足端轨迹偏移
+     * @brief 获取指定腿的足端轨迹偏移（支持转向）
      * 
      * @param leg 腿索引
      * @return 轨迹点（包含位置和相位信息）
@@ -96,12 +98,37 @@ public:
     TrajectoryPoint get_foot_trajectory(LegIndex leg) const {
         float leg_phase = get_leg_phase(leg);
         
-        return TrajectoryGenerator::generate(
-            leg_phase,
-            stride_length_,
-            step_height_,
-            trajectory_type_
-        );
+        // 根据转向角度调整腿部轨迹
+        if (std::abs(steering_angle_) > 0.001f) {
+            // 判断是否为左侧腿
+            bool is_left = (leg == LegIndex::LEFT_FRONT || leg == LegIndex::LEFT_BACK);
+            
+            // 左转时：左侧腿后退，右侧腿前进
+            // 右转时：右侧腿后退，左侧腿前进
+            float steering_factor;
+            if (is_left) {
+                steering_factor = -steering_angle_;  // 反向
+            } else {
+                steering_factor = steering_angle_;
+            }
+            
+            return TrajectoryGenerator::generate_with_steering(
+                leg_phase,
+                stride_length_,
+                step_height_,
+                steering_factor,
+                trajectory_type_
+            );
+        } else {
+            // 无转向，使用标准轨迹
+            auto point = TrajectoryGenerator::generate(
+                leg_phase,
+                stride_length_,
+                step_height_,
+                trajectory_type_
+            );
+            return point;
+        }
     }
     
     /**
@@ -143,6 +170,27 @@ public:
      */
     void set_trajectory_type(TrajectoryType type) {
         trajectory_type_ = type;
+    }
+    
+    /**
+     * @brief 设置运动方向（转向角度）
+     * 
+     * @param angle 转向角度 (弧度)
+     *              0 = 直行
+     *              正值 = 左转（逆时针）
+     *              负值 = 右转（顺时针）
+     */
+    void set_steering_angle(float angle) {
+        steering_angle_ = angle;
+    }
+    
+    /**
+     * @brief 获取转向角度
+     * 
+     * @return 转向角度 (弧度)
+     */
+    float get_steering_angle() const {
+        return steering_angle_;
     }
     
     /**
@@ -221,6 +269,7 @@ private:
     float frequency_;          // 步频 (Hz)
     float global_phase_;       // 全局相位 (0-1循环)
     TrajectoryType trajectory_type_;  // 轨迹类型
+    float steering_angle_;     // 转向角度 (弧度)
     
     std::map<LegIndex, float> phase_offsets_;  // 相位偏移
     std::map<LegIndex, LegState> leg_states_;  // 腿部状态

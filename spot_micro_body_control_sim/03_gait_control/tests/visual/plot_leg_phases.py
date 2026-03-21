@@ -32,7 +32,7 @@ for font_path in font_candidates:
         try:
             # 尝试使用addfont方法（matplotlib 3.2+）
             if hasattr(fm.fontManager, 'addfont'):
-                fm.fontManager.addfont(font_path)
+                _safe_addfont(font_path)
             chinese_font = fm.FontProperties(fname=font_path)
             
             # 设置全局字体（兼容不同版本）

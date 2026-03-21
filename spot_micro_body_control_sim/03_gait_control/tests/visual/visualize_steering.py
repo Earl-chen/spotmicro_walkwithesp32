@@ -33,7 +33,7 @@ def setup_chinese_font():
     if os.path.exists(font_file):
         try:
             # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
-            fm.fontManager.addfont(font_file)
+            _safe_addfont(font_file)
             
             # 创建 FontProperties
             font_prop = fm.FontProperties(fname=font_file)
