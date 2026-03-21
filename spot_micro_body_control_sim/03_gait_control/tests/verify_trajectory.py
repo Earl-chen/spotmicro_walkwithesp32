@@ -327,7 +327,7 @@ def verify_trajectory():
     
     plt.tight_layout()
     
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trajectory_verification.png')
+    output_path = os.path.join(os.getcwd(), 'trajectory_verification.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"\n✅ 验证图表已保存: {output_path}")
     
