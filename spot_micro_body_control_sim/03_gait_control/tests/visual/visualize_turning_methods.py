@@ -158,15 +158,25 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
         
         gait.update(dt)
         
-        # 累计前进距离
-        if gait.global_phase < previous_phase:
-            total_distance += gait.stride_length
+        # 获取当前速度
+        vel = gait.get_velocity()
+        forward_speed = vel['forward']
         
-        previous_phase = gait.global_phase
-        
-        # 更新机体位置
-        body_x = total_distance + gait.global_phase * gait.stride_length
-        controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
+        # 只有前进时才累计距离和更新机体位置
+        if forward_speed > 0.001:  # 有前进速度
+            # 累计前进距离
+            if gait.global_phase < previous_phase:
+                total_distance += gait.stride_length
+            
+            previous_phase = gait.global_phase
+            
+            # 更新机体位置（前进）
+            body_x = total_distance + gait.global_phase * gait.stride_length
+            controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
+        else:  # 零半径转向（无前进）
+            # 机体位置保持不变
+            controller.set_body_pose(0, 0, -0.1, 0, 0, 0)
+            previous_phase = gait.global_phase
         
         # 记录基座位置
         body_pos = model.frame_manager.transform_point(np.array([0, 0, 0]), "body", "world")
