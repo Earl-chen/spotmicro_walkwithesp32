@@ -4,8 +4,10 @@
 import sys
 import os
 import matplotlib
+from chinese_font_config import setup_chinese_font
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import matplotlib
+from chinese_font_config import setup_chinese_font.pyplot as plt
 from matplotlib import font_manager as fm
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
