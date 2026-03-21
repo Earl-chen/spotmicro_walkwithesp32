@@ -74,6 +74,13 @@ class WalkGait:
         # 轨迹类型（'cycloid', 'ellipse', 'bezier'）
         self.trajectory_type = 'cycloid'
         
+        # 转向角度（差速转向）
+        # 正值 = 左转，负值 = 右转，0 = 直行
+        self.steering_angle = 0.0
+        
+        # 转向系数（控制转向强度）
+        self.steering_factor = 0.3
+        
     def update(self, dt: float):
         """
         更新全局相位
@@ -112,7 +119,7 @@ class WalkGait:
     
     def get_foot_trajectory(self, leg_name: str) -> Tuple[float, float]:
         """
-        获取指定腿的足端轨迹偏移
+        获取指定腿的足端轨迹偏移（支持差速转向）
         
         参数：
             leg_name: 腿名称
@@ -148,7 +155,16 @@ class WalkGait:
         else:
             raise ValueError(f"Unknown trajectory type: {self.trajectory_type}")
         
-        # 注意：y 轴偏移用于转向功能，基础步态中为0
+        # 差速转向：调整左右腿的步长
+        if self.steering_angle != 0:
+            if leg_name in ['left_front', 'left_back']:
+                # 左侧腿：左转时步长减小，右转时步长增大
+                x *= (1 - self.steering_angle * self.steering_factor)
+            else:  # 'right_front', 'right_back'
+                # 右侧腿：左转时步长增大，右转时步长减小
+                x *= (1 + self.steering_angle * self.steering_factor)
+        
+        # 注意：y 轴偏移用于侧向步态，基础步态中为0
         # 返回 (x, z) 保持向后兼容
         return x, z
     
@@ -205,6 +221,41 @@ class WalkGait:
             raise ValueError(f"Invalid trajectory type: {trajectory_type}")
         self.trajectory_type = trajectory_type
     
+    def set_steering(self, steering_angle: float):
+        """
+        设置转向角度（差速转向）
+        
+        参数：
+            steering_angle: 转向角度（弧度）
+                           正值 = 左转
+                           负值 = 右转
+                           0 = 直行
+        
+        推荐范围：
+            -1.0 ~ +1.0 弧度（约 -60° ~ +60°）
+        
+        示例：
+            >>> gait.set_steering(0.5)   # 左转
+            >>> gait.set_steering(-0.5)  # 右转
+            >>> gait.set_steering(0.0)   # 直行
+        """
+        # 限制转向角度范围
+        steering_angle = max(-1.0, min(1.0, steering_angle))
+        self.steering_angle = steering_angle
+    
+    def set_steering_factor(self, factor: float):
+        """
+        设置转向系数（控制转向强度）
+        
+        参数：
+            factor: 转向系数（0.1 ~ 0.5）
+                   越大转向越明显
+        
+        示例：
+            >>> gait.set_steering_factor(0.3)  # 中等转向强度
+        """
+        self.steering_factor = max(0.1, min(0.5, factor))
+    
     def get_state(self) -> Dict:
         """
         获取步态状态信息
@@ -222,12 +273,15 @@ class WalkGait:
             'step_height': self.step_height,
             'frequency': self.frequency,
             'trajectory_type': self.trajectory_type,
-            'duty_cycle': 0.75  # Walk 步态占空比
+            'duty_cycle': 0.75,  # Walk 步态占空比
+            'steering_angle': self.steering_angle,
+            'steering_factor': self.steering_factor
         }
     
     def reset(self):
-        """重置步态相位"""
+        """重置步态相位和转向角度"""
         self.global_phase = 0.0
+        self.steering_angle = 0.0
 
 
 # 单元测试

@@ -8,14 +8,49 @@
 import sys
 import os
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
-import matplotlib
+from matplotlib import font_manager as fm
 
-# 设置中文字体
-matplotlib.rcParams['font.sans-serif'] = ['BabelStone Han', 'SimHei', 'DejaVu Sans']
-matplotlib.rcParams['axes.unicode_minus'] = False
+# =============================================================================
+# 中文字体配置
+# =============================================================================
+_FONT_FILE_RELATIVE = os.path.join('..', '..', '..', 'fonts', 'BabelStoneHan.ttf')
+
+def _get_font_path():
+    """获取字体文件的绝对路径"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_file = os.path.join(script_dir, _FONT_FILE_RELATIVE)
+    return os.path.normpath(font_file)
+
+def setup_chinese_font():
+    """配置中文字体"""
+    font_file = _get_font_path()
+    
+    if os.path.exists(font_file):
+        try:
+            # 关键：显式添加字体到 matplotlib 的 fontManager 缓存
+            fm.fontManager.addfont(font_file)
+            
+            # 创建 FontProperties
+            font_prop = fm.FontProperties(fname=font_file)
+            
+            # 设置全局字体
+            plt.rcParams['font.family'] = font_prop.get_name()
+            plt.rcParams['axes.unicode_minus'] = False
+            
+            return font_prop
+        except Exception as e:
+            print(f"⚠️ 字体加载失败: {e}")
+    
+    return fm.FontProperties()
+
+# 配置中文字体
+chinese_font = setup_chinese_font()
+print(f"✅ 已加载中文字体: {chinese_font.get_name()}")
 
 module_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, module_root)
@@ -30,6 +65,7 @@ def generate_steering_comparison():
     steps_per_cycle = int(1.0 / (gait.frequency * dt))
     
     # 收集三种转向模式的数据
+    # 修正：使用 set_steering() 替代 set_direction()
     modes = {
         '直行 (0°)': 0.0,
         '左转 (+30°)': np.pi/6,
@@ -40,7 +76,7 @@ def generate_steering_comparison():
     
     for mode_name, angle in modes.items():
         gait.reset()
-        gait.set_direction(angle)
+        gait.set_steering(angle)  # ✅ 修正：使用 set_steering()
         
         trajectories = {
             'left_front': {'x': [], 'y': [], 'z': []},
@@ -53,16 +89,16 @@ def generate_steering_comparison():
             gait.update(dt)
             
             for leg_name in trajectories.keys():
-                point = gait.get_foot_trajectory(leg_name)
-                trajectories[leg_name]['x'].append(point.x * 1000)  # 转换为mm
-                trajectories[leg_name]['y'].append(point.y * 1000)
-                trajectories[leg_name]['z'].append(point.z * 1000)
+                x, z = gait.get_foot_trajectory(leg_name)  # ✅ 修正：返回 tuple (x, z)
+                trajectories[leg_name]['x'].append(x * 1000)  # 转换为mm
+                trajectories[leg_name]['y'].append(0.0)  # ✅ 修正：Y 轴偏移为 0
+                trajectories[leg_name]['z'].append(z * 1000)
         
         all_trajectories[mode_name] = trajectories
     
     # 绘制对比图
     fig, axes = plt.subplots(3, 3, figsize=(15, 12))
-    fig.suptitle('Walk步态转向功能对比', fontsize=16, fontweight='bold')
+    fig.suptitle('Walk步态转向功能对比', fontsize=16, fontweight='bold', fontproperties=chinese_font)
     
     leg_colors = {
         'left_front': '#FF6B6B',
@@ -79,12 +115,12 @@ def generate_steering_comparison():
                       color=leg_colors[leg_name], 
                       label=leg_name, 
                       linewidth=2)
-        ax_xy.set_xlabel('X (mm)')
-        ax_xy.set_ylabel('Y (mm)')
-        ax_xy.set_title(f'{mode_name}\nXY平面（俯视）')
+        ax_xy.set_xlabel('X (mm)', fontproperties=chinese_font)
+        ax_xy.set_ylabel('Y (mm)', fontproperties=chinese_font)
+        ax_xy.set_title(f'{mode_name}\nXY平面（俯视）', fontproperties=chinese_font)
         ax_xy.grid(True, alpha=0.3)
         ax_xy.axis('equal')
-        ax_xy.legend(fontsize=8)
+        ax_xy.legend(fontsize=8, prop=chinese_font)
         
         # XZ平面（侧视图）
         ax_xz = axes[idx, 1]
@@ -92,9 +128,9 @@ def generate_steering_comparison():
             ax_xz.plot(data['x'], data['z'], 
                       color=leg_colors[leg_name], 
                       linewidth=2)
-        ax_xz.set_xlabel('X (mm)')
-        ax_xz.set_ylabel('Z (mm)')
-        ax_xz.set_title(f'{mode_name}\nXZ平面（侧视）')
+        ax_xz.set_xlabel('X (mm)', fontproperties=chinese_font)
+        ax_xz.set_ylabel('Z (mm)', fontproperties=chinese_font)
+        ax_xz.set_title(f'{mode_name}\nXZ平面（侧视）', fontproperties=chinese_font)
         ax_xz.grid(True, alpha=0.3)
         
         # YZ平面（正视图）
@@ -103,9 +139,9 @@ def generate_steering_comparison():
             ax_yz.plot(data['y'], data['z'], 
                       color=leg_colors[leg_name], 
                       linewidth=2)
-        ax_yz.set_xlabel('Y (mm)')
-        ax_yz.set_ylabel('Z (mm)')
-        ax_yz.set_title(f'{mode_name}\nYZ平面（正视）')
+        ax_yz.set_xlabel('Y (mm)', fontproperties=chinese_font)
+        ax_yz.set_ylabel('Z (mm)', fontproperties=chinese_font)
+        ax_yz.set_title(f'{mode_name}\nYZ平面（正视）', fontproperties=chinese_font)
         ax_yz.grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -122,7 +158,7 @@ def generate_steering_animation():
     print("生成转向动画...")
     
     gait = WalkGait(stride_length=0.05, step_height=0.03, frequency=0.8)
-    gait.set_direction(np.pi/6)  # 左转30度
+    gait.set_steering(np.pi/6)  # ✅ 修正：左转30度
     
     dt = 0.02
     
@@ -163,19 +199,19 @@ def generate_steering_animation():
     ax.set_ylim(-100, 100)
     ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
-    ax.legend(loc='upper right')
-    ax.set_xlabel('X (mm)')
-    ax.set_ylabel('Y (mm)')
-    ax.set_title('Walk步态转向动画（左转30°）')
+    ax.legend(loc='upper right', prop=chinese_font)
+    ax.set_xlabel('X (mm)', fontproperties=chinese_font)
+    ax.set_ylabel('Y (mm)', fontproperties=chinese_font)
+    ax.set_title('Walk步态转向动画（左转30°）', fontproperties=chinese_font)
     
     def update(frame):
         gait.update(dt)
         
         for leg_name, (base_x, base_y) in leg_positions.items():
-            point = gait.get_foot_trajectory(leg_name)
+            x_offset, z_offset = gait.get_foot_trajectory(leg_name)  # ✅ 修正：返回 (x, z) 元组
             # 更新脚部位置（基准位置 + 轨迹偏移）
-            new_x = base_x + point.x * 1000
-            new_y = base_y + point.y * 1000
+            new_x = base_x + x_offset * 1000
+            new_y = base_y  # ✅ 修正：Y 轴偏移为 0
             leg_points[leg_name].set_data([new_x], [new_y])
         
         return list(leg_points.values())
