@@ -278,11 +278,9 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
         vel = gait.get_velocity()
         
         # 设置标题
-        rotation_deg = np.degrees(rotation_angle)
         ax.set_title(f'{title}\n'
                     f'前进: {vel["forward"]*100:.1f} cm/s | '
                     f'转向: {vel["yaw_rate"]:.2f} rad/s | '
-                    f'旋转角度: {rotation_deg:.1f}° | '
                     f'支撑腿: {stance_count}/4',
                     fontsize=12, fontproperties=chinese_font)
         
