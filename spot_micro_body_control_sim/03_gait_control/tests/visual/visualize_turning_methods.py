@@ -141,7 +141,7 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
     total_distance = 0.0
     previous_phase = 0.0
     
-    # 累计旋转角度
+    # 累计旋转角度（身体自然旋转）
     rotation_angle = 0.0
     
     # 记录基座轨迹
@@ -166,7 +166,7 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
         forward_speed = vel['forward']
         yaw_rate = vel['yaw_rate']
         
-        # 累计旋转角度
+        # 累计旋转角度（身体自然旋转）
         rotation_angle += yaw_rate * dt
         
         # 只有前进时才累计距离和更新机体位置
@@ -177,13 +177,13 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
             
             previous_phase = gait.global_phase
             
-            # 更新机体位置（前进，姿态不变）
+            # 更新机体位置和姿态（前进 + 自然旋转）
             body_x = total_distance + gait.global_phase * gait.stride_length
-            controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
+            controller.set_body_pose(body_x, 0, -0.1, 0, 0, rotation_angle)
         else:  # 零半径转向（无前进）
-            # 机体位置和姿态保持不变
-            # 转向通过腿部运动实现（左腿后退，右腿前进）
-            controller.set_body_pose(0, 0, -0.1, 0, 0, 0)
+            # 机体位置保持不变，但姿态自然旋转
+            # 旋转是通过腿部运动产生的（左腿后退，右腿前进）
+            controller.set_body_pose(0, 0, -0.1, 0, 0, rotation_angle)
             previous_phase = gait.global_phase
         
         # 记录基座位置
