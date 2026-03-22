@@ -156,36 +156,19 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
         """更新动画帧"""
         nonlocal total_distance, previous_phase
         
+        # 1. 更新步态相位
         gait.update(dt)
         
-        # 获取当前速度
+        # 2. 获取当前速度
         vel = gait.get_velocity()
         forward_speed = vel['forward']
         
-        # 只有前进时才累计距离和更新机体位置
-        if forward_speed > 0.001:  # 有前进速度
-            # 累计前进距离
-            if gait.global_phase < previous_phase:
-                total_distance += gait.stride_length
-            
-            previous_phase = gait.global_phase
-            
-            # 更新机体位置（前进）
-            body_x = total_distance + gait.global_phase * gait.stride_length
-            controller.set_body_pose(body_x, 0, -0.1, 0, 0, 0)
-        else:  # 零半径转向（无前进）
-            # 机体位置保持不变
-            # 转向通过腿部运动实现（左腿后退，右腿前进）
-            # 身体不直接旋转，而是通过腿部运动自然转向
-            controller.set_body_pose(0, 0, -0.1, 0, 0, 0)
-            previous_phase = gait.global_phase
-        
-        # 记录基座位置
-        body_pos = model.frame_manager.transform_point(np.array([0, 0, 0]), "body", "world")
-        body_trajectory.append(body_pos.copy())
-        
-        # 更新所有腿的姿态
+        # 3. 更新所有腿的姿态（IK 求解）← 腿先动
         trajectories = gait.get_all_foot_trajectories()
+        
+        # 记录前后腿的 x 偏移（用于计算机体旋转角度）
+        front_leg_x = 0.0
+        back_leg_x = 0.0
         
         for leg_name, (x_offset, z_offset) in trajectories.items():
             legkin, hip_frame = model.legs[leg_name]
@@ -199,8 +182,44 @@ def create_turning_animation(turning_config, output_file, title, frames=100, dt=
             if ik_result.success:
                 ik_success[leg_name] += 1
                 model.update_joint_angles(leg_name, ik_result.joints)
+            
+            # 记录前后腿的 x 偏移
+            if 'front' in leg_name:
+                front_leg_x += x_offset
+            else:
+                back_leg_x += x_offset
         
-        # 清除并重新绘制
+        # 4. 根据前后腿的位置差异计算机体旋转角度 ← 身体跟随
+        # 前后腿的平均 x 偏移差异 = 旋转角度
+        front_leg_x /= 2  # 平均值
+        back_leg_x /= 2   # 平均值
+        
+        # 旋转角度 = arctan((前腿x - 后腿x) / 前后距离)
+        # 前后距离约 0.2075m（身体长度）
+        body_length = 0.2075
+        rotation_angle = np.arctan2(front_leg_x - back_leg_x, body_length)
+        
+        # 5. 更新机体位置和姿态 ← 身体跟随
+        if forward_speed > 0.001:  # 有前进速度
+            # 累计前进距离
+            if gait.global_phase < previous_phase:
+                total_distance += gait.stride_length
+            
+            previous_phase = gait.global_phase
+            
+            # 更新机体位置和姿态（根据腿的位置）
+            body_x = total_distance + gait.global_phase * gait.stride_length
+            controller.set_body_pose(body_x, 0, -0.1, 0, 0, rotation_angle)
+        else:  # 零半径转向（无前进）
+            # 机体位置保持不变，但姿态根据腿的位置旋转
+            controller.set_body_pose(0, 0, -0.1, 0, 0, rotation_angle)
+            previous_phase = gait.global_phase
+        
+        # 6. 记录基座位置
+        body_pos = model.frame_manager.transform_point(np.array([0, 0, 0]), "body", "world")
+        body_trajectory.append(body_pos.copy())
+        
+        # 7. 清除并重新绘制
         ax.clear()
         
         # 绘制基座轨迹
